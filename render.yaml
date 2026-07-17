@@ -1,0 +1,22 @@
+services:
+  - type: web
+    name: my-website
+    runtime: node
+    plan: free
+    buildCommand: npm install && npm run build
+    startCommand: npm run seed && npm start
+    envVars:
+      - key: NODE_ENV
+        value: production
+      - key: DATA_DIR
+        value: /data
+      - key: JWT_SECRET
+        generateValue: true
+      - key: ADMIN_USER
+        value: admin
+      - key: ADMIN_PASS
+        generateValue: true
+    disk:
+      name: data
+      mountPath: /data
+      sizeGB: 1
