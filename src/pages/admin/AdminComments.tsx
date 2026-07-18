@@ -28,8 +28,8 @@ export default function AdminComments() {
 
   async function fetchComments() {
     try {
-      const data = (await api.get('/admin/comments')) as Comment[];
-      setComments(data || []);
+      const data = (await api.get('/admin/comments')) as { comments: Comment[] };
+      setComments(data.comments || []);
     } catch (err) {
       setError(err instanceof Error ? err.message : '加载失败');
     } finally {

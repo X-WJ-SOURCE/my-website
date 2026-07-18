@@ -27,8 +27,8 @@ export default function AdminWall() {
 
   async function fetchPosts() {
     try {
-      const data = (await api.get('/admin/wall')) as WallPost[];
-      setPosts(data || []);
+      const data = (await api.get('/admin/wall')) as { posts: WallPost[] };
+      setPosts(data.posts || []);
     } catch (err) {
       setError(err instanceof Error ? err.message : '加载失败');
     } finally {

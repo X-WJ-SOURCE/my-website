@@ -38,8 +38,8 @@ export default function AdminArticles() {
 
   async function fetchArticles() {
     try {
-      const data = (await api.get('/articles?admin=1')) as Article[];
-      setArticles(data || []);
+      const data = (await api.get('/articles')) as { articles: Article[] };
+      setArticles(data.articles || []);
     } catch (err) {
       setError(err instanceof Error ? err.message : '加载失败');
     } finally {

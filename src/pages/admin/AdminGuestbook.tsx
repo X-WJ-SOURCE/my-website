@@ -27,8 +27,8 @@ export default function AdminGuestbook() {
 
   async function fetchEntries() {
     try {
-      const data = (await api.get('/admin/guestbook')) as GuestbookEntry[];
-      setEntries(data || []);
+      const data = (await api.get('/admin/guestbook')) as { entries: GuestbookEntry[] };
+      setEntries(data.entries || []);
     } catch (err) {
       setError(err instanceof Error ? err.message : '加载失败');
     } finally {
