@@ -60,7 +60,7 @@ export default function GraffitiWall() {
   const [editSubmitting, setEditSubmitting] = useState(false);
 
   const formRef = useRef<HTMLDivElement>(null);
-  const limit = 6;
+  const limit = 12;
   const totalPages = Math.ceil(total / limit);
 
   const fetchPosts = useCallback(() => {
@@ -341,11 +341,11 @@ export default function GraffitiWall() {
                   {(post.image_url || ((post as any).images && JSON.parse((post as any).images || '[]').length > 0)) && (
                     <div className="flex gap-2 mt-2 flex-wrap">
                       {post.image_url && (
-                        <img src={post.image_url} alt="" className="max-w-[120px] max-h-[120px] object-cover rounded" />
+                        <img src={post.image_url} alt="" className="w-full rounded mb-2" />
                       )}
                       {(() => {
                         try { return JSON.parse((post as any).images || '[]').map((url: string, i: number) => (
-                          <img key={i} src={url} alt="" className="max-w-[120px] max-h-[120px] object-cover rounded" />
+                          <img key={i} src={url} alt="" className="w-full rounded mb-1" />
                         )) } catch { return null }
                       })()}
                     </div>
