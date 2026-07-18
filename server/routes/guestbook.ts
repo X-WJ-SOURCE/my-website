@@ -1,19 +1,20 @@
 import { Hono } from 'hono'
-import { getDb } from '../db.js'
+import { db } from '../db.js'
 import { authMiddleware } from '../auth.js'
 
 const guestbookRouter = new Hono()
 
-guestbookRouter.get('/', (c) => {
+guestbookRouter.get('/', async (c) => {
   const page = parseInt(c.req.query('page') || '1')
   const limit = parseInt(c.req.query('limit') || '20')
   const offset = (page - 1) * limit
 
-  const entries = getDb().prepare(
-    'SELECT * FROM guestbook ORDER BY created_at DESC LIMIT ? OFFSET ?'
-  ).all(limit, offset)
+  const entries = (await db().execute({
+    sql: 'SELECT * FROM guestbook ORDER BY created_at DESC LIMIT ? OFFSET ?',
+    args: [limit, offset]
+  })).rows
 
-  const total = (getDb().prepare('SELECT COUNT(*) as count FROM guestbook').get() as any).count
+  const total = ((await db().execute({ sql: 'SELECT COUNT(*) as count FROM guestbook' })).rows[0] as any).count
 
   return c.json({ entries, total, page, limit })
 })
@@ -25,16 +26,17 @@ guestbookRouter.post('/', async (c) => {
     return c.json({ error: 'Content is required' }, 400)
   }
 
-  const result = getDb().prepare(
-    'INSERT INTO guestbook (nickname, content, image_url) VALUES (?, ?, ?)'
-  ).run(nickname || 'Anonymous', content, image_url || null)
+  const result = await db().execute({
+    sql: 'INSERT INTO guestbook (nickname, content, image_url) VALUES (?, ?, ?)',
+    args: [nickname || 'Anonymous', content, image_url || null]
+  })
 
-  return c.json({ id: result.lastInsertRowid, message: 'Guestbook entry posted' }, 201)
+  return c.json({ id: Number(result.lastInsertRowid), message: 'Guestbook entry posted' }, 201)
 })
 
-guestbookRouter.delete('/:id', authMiddleware, (c) => {
+guestbookRouter.delete('/:id', authMiddleware, async (c) => {
   const id = c.req.param('id')
-  getDb().prepare('DELETE FROM guestbook WHERE id = ?').run(id)
+  await db().execute({ sql: 'DELETE FROM guestbook WHERE id = ?', args: [id] })
   return c.json({ message: 'Entry deleted' })
 })
 

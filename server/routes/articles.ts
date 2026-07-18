@@ -1,10 +1,10 @@
 import { Hono } from 'hono'
-import { getDb } from '../db.js'
+import { db } from '../db.js'
 import { authMiddleware } from '../auth.js'
 
 const articlesRouter = new Hono()
 
-articlesRouter.get('/', (c) => {
+articlesRouter.get('/', async (c) => {
   const page = parseInt(c.req.query('page') || '1')
   const limit = parseInt(c.req.query('limit') || '10')
   const tag = c.req.query('tag')
@@ -31,34 +31,36 @@ articlesRouter.get('/', (c) => {
   query += ' ORDER BY a.created_at DESC LIMIT ? OFFSET ?'
   params.push(limit, offset)
 
-  const articles = getDb().prepare(query).all(...params) as any[]
+  const articles = (await db().execute({ sql: query, args: params })).rows as any[]
 
   const countQuery = tag
     ? "SELECT COUNT(DISTINCT a.id) as count FROM articles a INNER JOIN article_tags at2 ON a.id = at2.article_id INNER JOIN tags t2 ON at2.tag_id = t2.id WHERE t2.name = ? AND a.visibility = 'public'"
     : "SELECT COUNT(*) as count FROM articles WHERE visibility = 'public'"
 
   const countParams = tag ? [tag] : []
-  const total = (getDb().prepare(isAuth
-    ? `SELECT COUNT(*) as count FROM articles`
-    : countQuery
-  ).get(...(isAuth ? [] : countParams)) as any).count
+  const countResult = isAuth
+    ? (await db().execute({ sql: 'SELECT COUNT(*) as count FROM articles' })).rows[0]
+    : (await db().execute({ sql: countQuery, args: countParams })).rows[0]
+  const total = (countResult as any).count
 
-  const articlesWithTags = articles.map((a: any) => {
-    const tags = getDb().prepare(
-      'SELECT t.name FROM tags t INNER JOIN article_tags at ON t.id = at.tag_id WHERE at.article_id = ?'
-    ).all(a.id) as any[]
-    const viewCount = (getDb().prepare(
-      'SELECT COUNT(*) as count FROM article_views WHERE article_id = ?'
-    ).get(a.id) as any).count
+  const articlesWithTags = await Promise.all(articles.map(async (a: any) => {
+    const tags = (await db().execute({
+      sql: 'SELECT t.name FROM tags t INNER JOIN article_tags at ON t.id = at.tag_id WHERE at.article_id = ?',
+      args: [a.id]
+    })).rows as any[]
+    const viewCount = ((await db().execute({
+      sql: 'SELECT COUNT(*) as count FROM article_views WHERE article_id = ?',
+      args: [a.id]
+    })).rows[0] as any).count
     return { ...a, tags: tags.map((t: any) => t.name), view_count: viewCount }
-  })
+  }))
 
   return c.json({ articles: articlesWithTags, total, page, limit })
 })
 
-articlesRouter.get('/:id', (c) => {
+articlesRouter.get('/:id', async (c) => {
   const id = c.req.param('id')
-  const article = getDb().prepare('SELECT * FROM articles WHERE id = ?').get(id) as any
+  const article = (await db().execute({ sql: 'SELECT * FROM articles WHERE id = ?', args: [id] })).rows[0] as any
 
   if (!article) {
     return c.json({ error: 'Article not found' }, 404)
@@ -71,89 +73,119 @@ articlesRouter.get('/:id', (c) => {
 
   const visitorId = c.req.query('visitor_id')
   if (visitorId) {
-    const recent = getDb().prepare(
-      "SELECT id FROM article_views WHERE article_id = ? AND visitor_id = ? AND viewed_at > datetime('now', '-30 minutes')"
-    ).get(id, visitorId)
+    const recent = (await db().execute({
+      sql: "SELECT id FROM article_views WHERE article_id = ? AND visitor_id = ? AND viewed_at > datetime('now', '-30 minutes')",
+      args: [id, visitorId]
+    })).rows[0]
     if (!recent) {
-      getDb().prepare(
-        'INSERT INTO article_views (article_id, visitor_id) VALUES (?, ?)'
-      ).run(id, visitorId)
+      await db().execute({
+        sql: 'INSERT INTO article_views (article_id, visitor_id) VALUES (?, ?)',
+        args: [id, visitorId]
+      })
     }
   }
 
-  const tags = getDb().prepare(
-    'SELECT t.name FROM tags t INNER JOIN article_tags at ON t.id = at.tag_id WHERE at.article_id = ?'
-  ).all(id) as any[]
+  const tags = (await db().execute({
+    sql: 'SELECT t.name FROM tags t INNER JOIN article_tags at ON t.id = at.tag_id WHERE at.article_id = ?',
+    args: [id]
+  })).rows as any[]
   article.tags = tags.map((t: any) => t.name)
 
-  const viewCount = (getDb().prepare(
-    'SELECT COUNT(*) as count FROM article_views WHERE article_id = ?'
-  ).get(id) as any).count
+  const viewCount = ((await db().execute({
+    sql: 'SELECT COUNT(*) as count FROM article_views WHERE article_id = ?',
+    args: [id]
+  })).rows[0] as any).count
   article.view_count = viewCount
 
   return c.json(article)
 })
 
-articlesRouter.post('/', authMiddleware, (c) => c.req.json().then(({ title, content, visibility, tags }) => {
+articlesRouter.post('/', authMiddleware, async (c) => {
+  const { title, content, visibility, tags } = await c.req.json()
+
   if (!title || !content) {
     return c.json({ error: 'Title and content are required' }, 400)
   }
-  const result = getDb().prepare(
-    'INSERT INTO articles (title, content, visibility) VALUES (?, ?, ?)'
-  ).run(title, content, visibility || 'public')
+  const result = await db().execute({
+    sql: 'INSERT INTO articles (title, content, visibility) VALUES (?, ?, ?)',
+    args: [title, content, visibility || 'public']
+  })
 
-  const articleId = result.lastInsertRowid as number
+  const articleId = Number(result.lastInsertRowid)
 
   if (tags && Array.isArray(tags)) {
     for (const tagName of tags) {
-      let tag = getDb().prepare('SELECT id FROM tags WHERE name = ?').get(tagName) as any
+      let tag = (await db().execute({
+        sql: 'SELECT id FROM tags WHERE name = ?',
+        args: [tagName]
+      })).rows[0] as any
       if (!tag) {
-        const tagResult = getDb().prepare('INSERT INTO tags (name) VALUES (?)').run(tagName)
-        tag = { id: tagResult.lastInsertRowid }
+        const tagResult = await db().execute({
+          sql: 'INSERT INTO tags (name) VALUES (?)',
+          args: [tagName]
+        })
+        tag = { id: Number(tagResult.lastInsertRowid) }
       }
-      getDb().prepare('INSERT OR IGNORE INTO article_tags (article_id, tag_id) VALUES (?, ?)').run(articleId, tag.id)
+      await db().execute({
+        sql: 'INSERT OR IGNORE INTO article_tags (article_id, tag_id) VALUES (?, ?)',
+        args: [articleId, tag.id]
+      })
     }
   }
 
   return c.json({ id: articleId, message: 'Article created' }, 201)
-}))
+})
 
-articlesRouter.put('/:id', authMiddleware, (c) => c.req.json().then(({ title, content, visibility, tags }) => {
+articlesRouter.put('/:id', authMiddleware, async (c) => {
   const id = c.req.param('id')
-  const existing = getDb().prepare('SELECT id FROM articles WHERE id = ?').get(id)
+  const { title, content, visibility, tags } = await c.req.json()
+
+  const existing = (await db().execute({ sql: 'SELECT id FROM articles WHERE id = ?', args: [id] })).rows[0]
   if (!existing) {
     return c.json({ error: 'Article not found' }, 404)
   }
 
-  getDb().prepare('UPDATE articles SET title = ?, content = ?, visibility = ?, updated_at = datetime(\'now\') WHERE id = ?')
-    .run(title, content, visibility, id)
+  await db().execute({
+    sql: "UPDATE articles SET title = ?, content = ?, visibility = ?, updated_at = datetime('now') WHERE id = ?",
+    args: [title, content, visibility, id]
+  })
 
   if (tags && Array.isArray(tags)) {
-    getDb().prepare('DELETE FROM article_tags WHERE article_id = ?').run(id)
+    await db().execute({ sql: 'DELETE FROM article_tags WHERE article_id = ?', args: [id] })
     for (const tagName of tags) {
-      let tag = getDb().prepare('SELECT id FROM tags WHERE name = ?').get(tagName) as any
+      let tag = (await db().execute({
+        sql: 'SELECT id FROM tags WHERE name = ?',
+        args: [tagName]
+      })).rows[0] as any
       if (!tag) {
-        const tagResult = getDb().prepare('INSERT INTO tags (name) VALUES (?)').run(tagName)
-        tag = { id: tagResult.lastInsertRowid }
+        const tagResult = await db().execute({
+          sql: 'INSERT INTO tags (name) VALUES (?)',
+          args: [tagName]
+        })
+        tag = { id: Number(tagResult.lastInsertRowid) }
       }
-      getDb().prepare('INSERT OR IGNORE INTO article_tags (article_id, tag_id) VALUES (?, ?)').run(id, tag.id)
+      await db().execute({
+        sql: 'INSERT OR IGNORE INTO article_tags (article_id, tag_id) VALUES (?, ?)',
+        args: [id, tag.id]
+      })
     }
   }
 
   return c.json({ message: 'Article updated' })
-}))
+})
 
-articlesRouter.delete('/:id', authMiddleware, (c) => {
+articlesRouter.delete('/:id', authMiddleware, async (c) => {
   const id = c.req.param('id')
-  getDb().prepare('DELETE FROM articles WHERE id = ?').run(id)
+  await db().execute({ sql: 'DELETE FROM articles WHERE id = ?', args: [id] })
   return c.json({ message: 'Article deleted' })
 })
 
-articlesRouter.get('/:id/views', (c) => {
+articlesRouter.get('/:id/views', async (c) => {
   const id = c.req.param('id')
-  const count = (getDb().prepare(
-    'SELECT COUNT(*) as count FROM article_views WHERE article_id = ?'
-  ).get(id) as any).count
+  const count = ((await db().execute({
+    sql: 'SELECT COUNT(*) as count FROM article_views WHERE article_id = ?',
+    args: [id]
+  })).rows[0] as any).count
   return c.json({ views: count })
 })
 

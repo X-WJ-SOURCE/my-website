@@ -1,22 +1,24 @@
 import { Hono } from 'hono'
-import { getDb } from '../db.js'
+import { db } from '../db.js'
 import { authMiddleware } from '../auth.js'
 
 const commentsRouter = new Hono()
 
-commentsRouter.get('/article/:articleId', (c) => {
+commentsRouter.get('/article/:articleId', async (c) => {
   const articleId = c.req.param('articleId')
   const page = parseInt(c.req.query('page') || '1')
   const limit = parseInt(c.req.query('limit') || '20')
   const offset = (page - 1) * limit
 
-  const comments = getDb().prepare(
-    'SELECT * FROM comments WHERE article_id = ? ORDER BY created_at DESC LIMIT ? OFFSET ?'
-  ).all(articleId, limit, offset)
+  const comments = (await db().execute({
+    sql: 'SELECT * FROM comments WHERE article_id = ? ORDER BY created_at DESC LIMIT ? OFFSET ?',
+    args: [articleId, limit, offset]
+  })).rows
 
-  const total = (getDb().prepare(
-    'SELECT COUNT(*) as count FROM comments WHERE article_id = ?'
-  ).get(articleId) as any).count
+  const total = ((await db().execute({
+    sql: 'SELECT COUNT(*) as count FROM comments WHERE article_id = ?',
+    args: [articleId]
+  })).rows[0] as any).count
 
   return c.json({ comments, total, page, limit })
 })
@@ -29,16 +31,17 @@ commentsRouter.post('/article/:articleId', async (c) => {
     return c.json({ error: 'Content is required' }, 400)
   }
 
-  const result = getDb().prepare(
-    'INSERT INTO comments (article_id, nickname, content, image_url) VALUES (?, ?, ?, ?)'
-  ).run(articleId, nickname || 'Anonymous', content, image_url || null)
+  const result = await db().execute({
+    sql: 'INSERT INTO comments (article_id, nickname, content, image_url) VALUES (?, ?, ?, ?)',
+    args: [articleId, nickname || 'Anonymous', content, image_url || null]
+  })
 
-  return c.json({ id: result.lastInsertRowid, message: 'Comment posted' }, 201)
+  return c.json({ id: Number(result.lastInsertRowid), message: 'Comment posted' }, 201)
 })
 
-commentsRouter.delete('/:id', authMiddleware, (c) => {
+commentsRouter.delete('/:id', authMiddleware, async (c) => {
   const id = c.req.param('id')
-  getDb().prepare('DELETE FROM comments WHERE id = ?').run(id)
+  await db().execute({ sql: 'DELETE FROM comments WHERE id = ?', args: [id] })
   return c.json({ message: 'Comment deleted' })
 })
 
