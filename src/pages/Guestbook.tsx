@@ -1,5 +1,5 @@
 import { useState, useEffect, useCallback } from "react";
-import { api } from "../lib/api";
+import { api, getVisitorId } from "../lib/api";
 
 interface GuestbookEntry {
   id: number;
@@ -7,9 +7,19 @@ interface GuestbookEntry {
   content: string;
   image_url: string | null;
   created_at: string;
+  visitor_id: string;
+  edited_at: string | null;
+}
+
+function formatEditedAt(iso: string): string {
+  const d = new Date(iso);
+  const pad = (n: number) => String(n).padStart(2, "0");
+  return `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())} ${pad(d.getHours())}:${pad(d.getMinutes())}:${pad(d.getSeconds())}`;
 }
 
 export default function Guestbook() {
+  const visitorId = getVisitorId();
+
   const [entries, setEntries] = useState<GuestbookEntry[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -20,6 +30,10 @@ export default function Guestbook() {
   const [content, setContent] = useState("");
   const [submitting, setSubmitting] = useState(false);
   const [submitError, setSubmitError] = useState<string | null>(null);
+
+  const [editingEntryId, setEditingEntryId] = useState<number | null>(null);
+  const [editContent, setEditContent] = useState("");
+  const [editSubmitting, setEditSubmitting] = useState(false);
 
   const limit = 20;
   const totalPages = Math.ceil(total / limit);
@@ -55,6 +69,7 @@ export default function Guestbook() {
       await api.post("/guestbook", {
         nickname: nickname.trim() || undefined,
         content: content.trim(),
+        visitor_id: visitorId,
       });
       setNickname("");
       setContent("");
@@ -66,6 +81,48 @@ export default function Guestbook() {
       );
     } finally {
       setSubmitting(false);
+    }
+  };
+
+  const handleEditEntry = (entry: GuestbookEntry) => {
+    setEditingEntryId(entry.id);
+    setEditContent(entry.content);
+  };
+
+  const handleCancelEdit = () => {
+    setEditingEntryId(null);
+    setEditContent("");
+  };
+
+  const handleSaveEdit = async (entryId: number) => {
+    if (!editContent.trim()) return;
+    setEditSubmitting(true);
+    try {
+      await api.put(`/guestbook/${entryId}`, {
+        content: editContent.trim(),
+        visitor_id: visitorId,
+      });
+      setEditingEntryId(null);
+      setEditContent("");
+      fetchEntries();
+    } catch (err) {
+      setSubmitError(
+        err instanceof Error ? err.message : "编辑失败"
+      );
+    } finally {
+      setEditSubmitting(false);
+    }
+  };
+
+  const handleDeleteEntry = async (entryId: number) => {
+    if (!window.confirm("确定要删除这条留言吗？")) return;
+    try {
+      await api.delete(`/guestbook/${entryId}/own?visitor_id=${visitorId}`);
+      fetchEntries();
+    } catch (err) {
+      setSubmitError(
+        err instanceof Error ? err.message : "删除失败"
+      );
     }
   };
 
@@ -151,10 +208,60 @@ export default function Guestbook() {
                   <span className="text-xs text-text-secondary">
                     {new Date(entry.created_at).toLocaleDateString()}
                   </span>
+                  {entry.visitor_id === visitorId && (
+                    <div className="flex gap-2 ml-auto">
+                      <button
+                        onClick={() => handleEditEntry(entry)}
+                        className="text-xs text-text-secondary hover:text-accent transition-colors cursor-pointer"
+                      >
+                        [编辑]
+                      </button>
+                      <button
+                        onClick={() => handleDeleteEntry(entry.id)}
+                        className="text-xs text-text-secondary hover:text-red-400 transition-colors cursor-pointer"
+                      >
+                        [删除]
+                      </button>
+                    </div>
+                  )}
                 </div>
-                <p className="text-text-secondary text-sm whitespace-pre-wrap">
-                  {entry.content}
-                </p>
+                {editingEntryId === entry.id ? (
+                  <div>
+                    <textarea
+                      value={editContent}
+                      onChange={(e) => setEditContent(e.target.value)}
+                      rows={3}
+                      maxLength={500}
+                      className="w-full px-3 py-2 mb-2 bg-bg-primary border border-accent rounded-lg text-text-primary text-sm focus:outline-none resize-none"
+                    />
+                    <div className="flex gap-2">
+                      <button
+                        onClick={() => handleSaveEdit(entry.id)}
+                        disabled={!editContent.trim() || editSubmitting}
+                        className="px-3 py-1 bg-accent text-white rounded text-xs hover:opacity-80 transition-opacity disabled:opacity-40 disabled:cursor-not-allowed cursor-pointer"
+                      >
+                        {editSubmitting ? "保存中..." : "保存"}
+                      </button>
+                      <button
+                        onClick={handleCancelEdit}
+                        className="px-3 py-1 bg-bg-card text-text-secondary rounded text-xs hover:bg-bg-card/70 transition-colors cursor-pointer"
+                      >
+                        取消
+                      </button>
+                    </div>
+                  </div>
+                ) : (
+                  <>
+                    <p className="text-text-secondary text-sm whitespace-pre-wrap">
+                      {entry.content}
+                    </p>
+                    {entry.edited_at && (
+                      <p className="text-xs text-text-secondary mt-1">
+                        最后编辑于 {formatEditedAt(entry.edited_at)}
+                      </p>
+                    )}
+                  </>
+                )}
                 {entry.image_url && (
                   <img
                     src={entry.image_url}

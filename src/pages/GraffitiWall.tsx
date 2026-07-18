@@ -1,5 +1,5 @@
 import { useState, useEffect, useCallback, useRef } from "react";
-import { api } from "../lib/api";
+import { api, getVisitorId } from "../lib/api";
 
 interface WallPost {
   id: number;
@@ -7,6 +7,14 @@ interface WallPost {
   content: string | null;
   image_url: string | null;
   created_at: string;
+  visitor_id: string;
+  edited_at: string | null;
+}
+
+function formatEditedAt(iso: string): string {
+  const d = new Date(iso);
+  const pad = (n: number) => String(n).padStart(2, "0");
+  return `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())} ${pad(d.getHours())}:${pad(d.getMinutes())}:${pad(d.getSeconds())}`;
 }
 
 const ACCENT_COLORS = [
@@ -38,6 +46,8 @@ function getCardStyle(index: number) {
 }
 
 export default function GraffitiWall() {
+  const visitorId = getVisitorId();
+
   const [posts, setPosts] = useState<WallPost[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -50,6 +60,10 @@ export default function GraffitiWall() {
   const [uploading, setUploading] = useState(false);
   const [submitting, setSubmitting] = useState(false);
   const [submitError, setSubmitError] = useState<string | null>(null);
+
+  const [editingPostId, setEditingPostId] = useState<number | null>(null);
+  const [editContent, setEditContent] = useState("");
+  const [editSubmitting, setEditSubmitting] = useState(false);
 
   const formRef = useRef<HTMLDivElement>(null);
   const limit = 30;
@@ -87,6 +101,7 @@ export default function GraffitiWall() {
         nickname: nickname.trim() || undefined,
         content: content.trim() || null,
         image_url: imageUrl || null,
+        visitor_id: visitorId,
       });
       setNickname("");
       setContent("");
@@ -117,6 +132,48 @@ export default function GraffitiWall() {
       setUploading(false)
     }
   }
+
+  const handleEditPost = (post: WallPost) => {
+    setEditingPostId(post.id);
+    setEditContent(post.content || "");
+  };
+
+  const handleCancelEdit = () => {
+    setEditingPostId(null);
+    setEditContent("");
+  };
+
+  const handleSaveEdit = async (postId: number) => {
+    if (!editContent.trim()) return;
+    setEditSubmitting(true);
+    try {
+      await api.put(`/wall/${postId}`, {
+        content: editContent.trim(),
+        visitor_id: visitorId,
+      });
+      setEditingPostId(null);
+      setEditContent("");
+      fetchPosts();
+    } catch (err) {
+      setSubmitError(
+        err instanceof Error ? err.message : "编辑失败"
+      );
+    } finally {
+      setEditSubmitting(false);
+    }
+  };
+
+  const handleDeletePost = async (postId: number) => {
+    if (!window.confirm("确定要删除这条帖子吗？")) return;
+    try {
+      await api.delete(`/wall/${postId}/own?visitor_id=${visitorId}`);
+      fetchPosts();
+    } catch (err) {
+      setSubmitError(
+        err instanceof Error ? err.message : "删除失败"
+      );
+    }
+  };
 
   const loadMore = () => {
     if (page < totalPages) {
@@ -232,11 +289,61 @@ export default function GraffitiWall() {
                     <span className="font-medium text-text-primary text-sm">
                       {post.nickname || "匿名"}
                     </span>
+                    {post.visitor_id === visitorId && (
+                      <div className="flex gap-1.5 ml-auto">
+                        <button
+                          onClick={() => handleEditPost(post)}
+                          className="text-xs text-text-secondary hover:text-accent transition-colors cursor-pointer"
+                        >
+                          [编辑]
+                        </button>
+                        <button
+                          onClick={() => handleDeletePost(post.id)}
+                          className="text-xs text-text-secondary hover:text-red-400 transition-colors cursor-pointer"
+                        >
+                          [删除]
+                        </button>
+                      </div>
+                    )}
                   </div>
-                  {post.content && (
-                    <p className="text-text-secondary text-sm whitespace-pre-wrap mb-2">
-                      {post.content}
-                    </p>
+                  {editingPostId === post.id ? (
+                    <div>
+                      <textarea
+                        value={editContent}
+                        onChange={(e) => setEditContent(e.target.value)}
+                        rows={3}
+                        maxLength={500}
+                        className="w-full px-3 py-2 mb-2 bg-bg-primary border border-accent rounded-lg text-text-primary text-sm focus:outline-none resize-none"
+                      />
+                      <div className="flex gap-2">
+                        <button
+                          onClick={() => handleSaveEdit(post.id)}
+                          disabled={!editContent.trim() || editSubmitting}
+                          className="px-3 py-1 bg-accent text-white rounded text-xs hover:opacity-80 transition-opacity disabled:opacity-40 disabled:cursor-not-allowed cursor-pointer"
+                        >
+                          {editSubmitting ? "保存中..." : "保存"}
+                        </button>
+                        <button
+                          onClick={handleCancelEdit}
+                          className="px-3 py-1 bg-bg-card text-text-secondary rounded text-xs hover:bg-bg-card/70 transition-colors cursor-pointer"
+                        >
+                          取消
+                        </button>
+                      </div>
+                    </div>
+                  ) : (
+                    <>
+                      {post.content && (
+                        <p className="text-text-secondary text-sm whitespace-pre-wrap mb-2">
+                          {post.content}
+                        </p>
+                      )}
+                      {post.edited_at && (
+                        <p className="text-xs text-text-secondary mt-0 mb-2">
+                          最后编辑于 {formatEditedAt(post.edited_at)}
+                        </p>
+                      )}
+                    </>
                   )}
                   {post.image_url && (
                     <img

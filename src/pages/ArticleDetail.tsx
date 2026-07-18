@@ -21,6 +21,14 @@ interface Comment {
   content: string;
   image_url: string | null;
   created_at: string;
+  visitor_id: string;
+  edited_at: string | null;
+}
+
+function formatEditedAt(iso: string): string {
+  const d = new Date(iso);
+  const pad = (n: number) => String(n).padStart(2, "0");
+  return `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())} ${pad(d.getHours())}:${pad(d.getMinutes())}:${pad(d.getSeconds())}`;
 }
 
 interface ReactionCount {
@@ -119,6 +127,10 @@ export default function ArticleDetail() {
   const [commentSubmitting, setCommentSubmitting] = useState(false);
   const [commentError, setCommentError] = useState<string | null>(null);
 
+  const [editingCommentId, setEditingCommentId] = useState<number | null>(null);
+  const [editContent, setEditContent] = useState("");
+  const [editSubmitting, setEditSubmitting] = useState(false);
+
   const fetchArticle = useCallback(() => {
     setLoading(true);
     setError(null);
@@ -178,6 +190,7 @@ export default function ArticleDetail() {
       await api.post(`/comments/article/${id}`, {
         nickname: commentNickname.trim() || undefined,
         content: commentContent.trim(),
+        visitor_id: visitorId,
       });
       setCommentNickname("");
       setCommentContent("");
@@ -188,6 +201,48 @@ export default function ArticleDetail() {
       );
     } finally {
       setCommentSubmitting(false);
+    }
+  };
+
+  const handleEditComment = (comment: Comment) => {
+    setEditingCommentId(comment.id);
+    setEditContent(comment.content);
+  };
+
+  const handleCancelEdit = () => {
+    setEditingCommentId(null);
+    setEditContent("");
+  };
+
+  const handleSaveEdit = async (commentId: number) => {
+    if (!editContent.trim()) return;
+    setEditSubmitting(true);
+    try {
+      await api.put(`/comments/${commentId}`, {
+        content: editContent.trim(),
+        visitor_id: visitorId,
+      });
+      setEditingCommentId(null);
+      setEditContent("");
+      fetchComments();
+    } catch (err) {
+      setCommentError(
+        err instanceof Error ? err.message : "编辑失败"
+      );
+    } finally {
+      setEditSubmitting(false);
+    }
+  };
+
+  const handleDeleteComment = async (commentId: number) => {
+    if (!window.confirm("确定要删除这条评论吗？")) return;
+    try {
+      await api.delete(`/comments/${commentId}/own?visitor_id=${visitorId}`);
+      fetchComments();
+    } catch (err) {
+      setCommentError(
+        err instanceof Error ? err.message : "删除失败"
+      );
     }
   };
 
@@ -441,10 +496,60 @@ export default function ArticleDetail() {
                   <span className="text-xs text-text-secondary">
                     {new Date(comment.created_at).toLocaleDateString()}
                   </span>
+                  {comment.visitor_id === visitorId && (
+                    <div className="flex gap-2 ml-auto">
+                      <button
+                        onClick={() => handleEditComment(comment)}
+                        className="text-xs text-text-secondary hover:text-accent transition-colors cursor-pointer"
+                      >
+                        [编辑]
+                      </button>
+                      <button
+                        onClick={() => handleDeleteComment(comment.id)}
+                        className="text-xs text-text-secondary hover:text-red-400 transition-colors cursor-pointer"
+                      >
+                        [删除]
+                      </button>
+                    </div>
+                  )}
                 </div>
-                <p className="text-text-secondary text-sm whitespace-pre-wrap">
-                  {comment.content}
-                </p>
+                {editingCommentId === comment.id ? (
+                  <div>
+                    <textarea
+                      value={editContent}
+                      onChange={(e) => setEditContent(e.target.value)}
+                      rows={3}
+                      maxLength={1000}
+                      className="w-full px-3 py-2 mb-2 bg-bg-primary border border-accent rounded-lg text-text-primary text-sm focus:outline-none resize-none"
+                    />
+                    <div className="flex gap-2">
+                      <button
+                        onClick={() => handleSaveEdit(comment.id)}
+                        disabled={!editContent.trim() || editSubmitting}
+                        className="px-3 py-1 bg-accent text-white rounded text-xs hover:opacity-80 transition-opacity disabled:opacity-40 disabled:cursor-not-allowed cursor-pointer"
+                      >
+                        {editSubmitting ? "保存中..." : "保存"}
+                      </button>
+                      <button
+                        onClick={handleCancelEdit}
+                        className="px-3 py-1 bg-bg-card text-text-secondary rounded text-xs hover:bg-bg-card/70 transition-colors cursor-pointer"
+                      >
+                        取消
+                      </button>
+                    </div>
+                  </div>
+                ) : (
+                  <>
+                    <p className="text-text-secondary text-sm whitespace-pre-wrap">
+                      {comment.content}
+                    </p>
+                    {comment.edited_at && (
+                      <p className="text-xs text-text-secondary mt-1">
+                        最后编辑于 {formatEditedAt(comment.edited_at)}
+                      </p>
+                    )}
+                  </>
+                )}
                 {comment.image_url && (
                   <img
                     src={comment.image_url}

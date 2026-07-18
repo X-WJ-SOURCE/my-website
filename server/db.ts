@@ -43,6 +43,12 @@ export async function initDb() {
   COMMIT;`)
   try { await c.execute('ALTER TABLE articles ADD COLUMN cover_url TEXT') } catch (_) {}
   try { await c.execute('ALTER TABLE articles ADD COLUMN decor_images TEXT') } catch (_) {}
+  try { await c.execute('ALTER TABLE comments ADD COLUMN visitor_id TEXT') } catch (_) {}
+  try { await c.execute('ALTER TABLE comments ADD COLUMN edited_at TEXT') } catch (_) {}
+  try { await c.execute('ALTER TABLE guestbook ADD COLUMN visitor_id TEXT') } catch (_) {}
+  try { await c.execute('ALTER TABLE guestbook ADD COLUMN edited_at TEXT') } catch (_) {}
+  try { await c.execute('ALTER TABLE wall_posts ADD COLUMN visitor_id TEXT') } catch (_) {}
+  try { await c.execute('ALTER TABLE wall_posts ADD COLUMN edited_at TEXT') } catch (_) {}
   await c.executeMultiple(`BEGIN;
     CREATE TABLE IF NOT EXISTS tags (
       id INTEGER PRIMARY KEY AUTOINCREMENT,
