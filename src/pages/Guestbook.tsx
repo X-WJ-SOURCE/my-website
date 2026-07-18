@@ -206,7 +206,7 @@ export default function Guestbook() {
                     {entry.nickname || "匿名"}
                   </span>
                   <span className="text-xs text-text-secondary">
-                    {new Date(entry.created_at).toLocaleDateString()}
+                    {new Date(entry.created_at).toLocaleString('zh-CN')}
                   </span>
                   {entry.visitor_id === visitorId && (
                     <div className="flex gap-2 ml-auto">

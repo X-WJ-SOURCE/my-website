@@ -356,7 +356,7 @@ export default function GraffitiWall() {
                     className="text-xs mt-2"
                     style={{ color: `${style.accentColor}aa` }}
                   >
-                    {new Date(post.created_at).toLocaleDateString()}
+                    {new Date(post.created_at).toLocaleString('zh-CN')}
                   </p>
                 </div>
               );

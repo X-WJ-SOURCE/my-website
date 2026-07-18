@@ -374,7 +374,7 @@ export default function ArticleDetail() {
                   {article.title}
                 </h1>
                 <div className="flex items-center gap-4 text-sm text-white/80">
-                  <span>{new Date(article.created_at).toLocaleDateString()}</span>
+                <span>{new Date(article.created_at).toLocaleString('zh-CN')}</span>
                   <span>{article.view_count} 次阅读</span>
                 </div>
               </div>
@@ -494,7 +494,7 @@ export default function ArticleDetail() {
                     {comment.nickname || "匿名"}
                   </span>
                   <span className="text-xs text-text-secondary">
-                    {new Date(comment.created_at).toLocaleDateString()}
+                    {new Date(comment.created_at).toLocaleString('zh-CN')}
                   </span>
                   {comment.visitor_id === visitorId && (
                     <div className="flex gap-2 ml-auto">
