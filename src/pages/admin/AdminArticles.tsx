@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { api } from '../../lib/api';
 import { useAdminAuth } from '../../hooks/useAdminAuth';
@@ -31,6 +31,7 @@ export default function AdminArticles() {
   const [saving, setSaving] = useState(false);
   const [uploading, setUploading] = useState(false);
   const [previewDecor, setPreviewDecor] = useState(false);
+  const dragRef = useRef(false);
 
   function parseDecorImages(raw: string | null): { url: string; x: number; y: number; w: number }[] {
     if (!raw) return []
@@ -315,7 +316,7 @@ export default function AdminArticles() {
 
         {previewDecor && decorImages.length > 0 && (
           <div className="fixed inset-0 z-50 bg-black/95 flex items-center justify-center overflow-hidden"
-            onClick={(e) => { if (e.target === e.currentTarget) setPreviewDecor(false) }}>
+            onClick={() => { if (!dragRef.current) setPreviewDecor(false) }}>
             <div className="absolute top-3 right-3 z-10 flex gap-2">
               <button onClick={() => setPreviewDecor(false)} className="px-4 py-1.5 bg-accent text-white rounded-lg text-sm cursor-pointer font-bold">完成</button>
             </div>
@@ -338,6 +339,7 @@ export default function AdminArticles() {
                 onMouseDown={(e) => {
                   if ((e.target as HTMLElement).classList.contains('resize-handle')) return
                   e.preventDefault()
+                  dragRef.current = true
                   const sx = e.clientX, sy = e.clientY, ox = img.x, oy = img.y
                   const move = (ev: MouseEvent) => {
                     setDecorImages(prev => prev.map((d, j) => j === i ? { ...d,
@@ -345,18 +347,19 @@ export default function AdminArticles() {
                       y: Math.max(2, Math.min(98, oy + ((ev.clientY - sy) / window.innerHeight * 100)))
                     } : d))
                   }
-                  const up = () => { document.removeEventListener('mousemove', move); document.removeEventListener('mouseup', up) }
+                  const up = () => { document.removeEventListener('mousemove', move); document.removeEventListener('mouseup', up); setTimeout(() => { dragRef.current = false }, 0) }
                   document.addEventListener('mousemove', move); document.addEventListener('mouseup', up)
                 }}>
                 <img src={img.url} alt="" className="rounded-lg shadow-2xl pointer-events-none" style={{ width: img.w }} draggable={false} />
                 <div className="absolute -bottom-1.5 -right-1.5 w-5 h-5 bg-white border-2 border-accent rounded resize-handle cursor-se-resize opacity-60 hover:opacity-100"
                   onMouseDown={(e) => {
                     e.preventDefault(); e.stopPropagation()
+                    dragRef.current = true
                     const sx = e.clientX; const ow = img.w
                     const move = (ev: MouseEvent) => {
                       setDecorImages(prev => prev.map((d, j) => j === i ? { ...d, w: Math.max(40, Math.min(500, ow + (ev.clientX - sx))) } : d))
                     }
-                    const up = () => { document.removeEventListener('mousemove', move); document.removeEventListener('mouseup', up) }
+                    const up = () => { document.removeEventListener('mousemove', move); document.removeEventListener('mouseup', up); setTimeout(() => { dragRef.current = false }, 0) }
                     document.addEventListener('mousemove', move); document.addEventListener('mouseup', up)
                   }} />
               </div>
