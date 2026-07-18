@@ -332,18 +332,17 @@ export default function AdminArticles() {
               </div>
             </div>
 
-            {decorImages.map((img, i) => {
-              const vw = window.innerWidth
-              const vh = window.innerHeight
-              return (<div key={i} className="fixed cursor-move select-none" style={{ left: `${img.x}%`, top: `${img.y}%`, transform: 'translate(-50%, -50%)', zIndex: 10 }}
+            {decorImages.map((img, i) => (
+              <div key={i} className="fixed cursor-move select-none" style={{ left: `${img.x}%`, top: `${img.y}%`, transform: 'translate(-50%, -50%)', zIndex: 10 }}
                 onMouseDown={(e) => {
                   if ((e.target as HTMLElement).classList.contains('resize-handle')) return
                   e.preventDefault()
                   const sx = e.clientX, sy = e.clientY, ox = img.x, oy = img.y
                   const move = (ev: MouseEvent) => {
-                    const dx = ((ev.clientX - sx) / vw) * 100
-                    const dy = ((ev.clientY - sy) / vh) * 100
-                    setDecorImages(prev => prev.map((d, j) => j === i ? { ...d, x: Math.max(2, Math.min(98, ox + dx)), y: Math.max(2, Math.min(98, oy + dy)) } : d))
+                    setDecorImages(prev => prev.map((d, j) => j === i ? { ...d,
+                      x: Math.max(2, Math.min(98, ox + ((ev.clientX - sx) / window.innerWidth * 100))),
+                      y: Math.max(2, Math.min(98, oy + ((ev.clientY - sy) / window.innerHeight * 100)))
+                    } : d))
                   }
                   const up = () => { document.removeEventListener('mousemove', move); document.removeEventListener('mouseup', up) }
                   document.addEventListener('mousemove', move); document.addEventListener('mouseup', up)
@@ -352,15 +351,15 @@ export default function AdminArticles() {
                 <div className="absolute -bottom-1.5 -right-1.5 w-5 h-5 bg-white border-2 border-accent rounded resize-handle cursor-se-resize opacity-60 hover:opacity-100"
                   onMouseDown={(e) => {
                     e.preventDefault(); e.stopPropagation()
-                    const sx = e.clientX, ow = img.w
+                    const sx = e.clientX; const ow = img.w
                     const move = (ev: MouseEvent) => {
                       setDecorImages(prev => prev.map((d, j) => j === i ? { ...d, w: Math.max(40, Math.min(500, ow + (ev.clientX - sx))) } : d))
                     }
                     const up = () => { document.removeEventListener('mousemove', move); document.removeEventListener('mouseup', up) }
                     document.addEventListener('mousemove', move); document.addEventListener('mouseup', up)
                   }} />
-              </div>)})
-            })}
+              </div>
+            ))}
           </div>
         )}
 
