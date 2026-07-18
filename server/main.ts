@@ -12,6 +12,7 @@ import guestbookRouter from './routes/guestbook.js'
 import messagesRouter from './routes/messages.js'
 import wallRouter from './routes/wall.js'
 import wallCommentsRouter from './routes/wall-comments.js'
+import wallDrawingsRouter from './routes/wall-drawings.js'
 import uploadRouter from './routes/upload.js'
 import reactionsRouter from './routes/reactions.js'
 import timelineRouter from './routes/timeline.js'
@@ -54,6 +55,7 @@ app.route('/api/guestbook', guestbookRouter)
 app.route('/api/messages', messagesRouter)
 app.route('/api/wall', wallRouter)
 app.route('/api/wall-comments', wallCommentsRouter)
+app.route('/api/wall-drawings', wallDrawingsRouter)
 app.route('/api/upload', uploadRouter)
 app.route('/api/reactions', reactionsRouter)
 app.route('/api/timeline', timelineRouter)

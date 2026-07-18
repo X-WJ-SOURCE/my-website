@@ -62,6 +62,14 @@ export async function initDb() {
       created_at TEXT NOT NULL DEFAULT (datetime('now'))
     )
   `) } catch (_) {}
+  try { await c.execute(`
+    CREATE TABLE IF NOT EXISTS wall_drawings (
+      id INTEGER PRIMARY KEY AUTOINCREMENT,
+      stroke_data TEXT NOT NULL,
+      color TEXT NOT NULL,
+      created_at TEXT NOT NULL DEFAULT (datetime('now'))
+    )
+  `) } catch (_) {}
   await c.executeMultiple(`BEGIN;
     CREATE TABLE IF NOT EXISTS tags (
       id INTEGER PRIMARY KEY AUTOINCREMENT,
