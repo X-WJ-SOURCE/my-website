@@ -27,11 +27,11 @@ export default function AdminArticles() {
   const [visibility, setVisibility] = useState<'public' | 'private'>('public');
   const [tags, setTags] = useState('');
   const [coverUrl, setCoverUrl] = useState('');
-  const [decorImages, setDecorImages] = useState<string[]>([]);
+  const [decorImages, setDecorImages] = useState<{ url: string; x: number; y: number }[]>([]);
   const [saving, setSaving] = useState(false);
   const [uploading, setUploading] = useState(false);
 
-  function parseDecorImages(raw: string | null): string[] {
+  function parseDecorImages(raw: string | null): { url: string; x: number; y: number }[] {
     if (!raw) return []
     try { return JSON.parse(raw) } catch { return [] }
   }
@@ -138,7 +138,7 @@ export default function AdminArticles() {
       const fd = new FormData()
       fd.append('file', file)
       const result = await api('/upload', { method: 'POST', body: fd }) as { url: string }
-      setDecorImages(prev => [...prev, result.url])
+      setDecorImages(prev => [...prev, { url: result.url, x: 50 + (prev.length * 10) % 40, y: 50 + (prev.length * 15) % 30 }])
     } catch (err) {
       setError(err instanceof Error ? err.message : '图片上传失败')
     } finally {
@@ -262,15 +262,24 @@ export default function AdminArticles() {
               </div>
             </div>
             <div>
-              <label className="block text-sm text-text-secondary mb-2">装饰图（散布在文章四周）</label>
+              <label className="block text-sm text-text-secondary mb-2">装饰图（文章背景点缀，可拖动调位置）</label>
               <div className="flex flex-wrap gap-3">
-                {decorImages.map((url, i) => (
-                  <div key={i} className="relative">
-                    <img src={url} alt="" className="h-16 w-24 object-cover rounded" />
-                    <button type="button" onClick={() => setDecorImages(prev => prev.filter((_, j) => j !== i))} className="absolute -top-1 -right-1 w-5 h-5 bg-red-500 text-white rounded-full text-xs">×</button>
+                {decorImages.map((img, i) => (
+                  <div key={i} className="relative group w-24">
+                    <div className="relative h-16 rounded overflow-hidden border-2 border-bg-card hover:border-accent cursor-grab active:cursor-grabbing"
+                      onMouseDown={(e) => {
+                        const sx = e.clientX, sy = e.clientY, ox = img.x, oy = img.y
+                        const move = (ev: MouseEvent) => setDecorImages(prev => prev.map((d, j) => j === i ? { ...d, x: Math.max(0, Math.min(90, ox + (ev.clientX - sx) * 0.5)), y: Math.max(0, Math.min(90, oy + (ev.clientY - sy) * 0.5)) } : d))
+                        const up = () => { document.removeEventListener('mousemove', move); document.removeEventListener('mouseup', up) }
+                        document.addEventListener('mousemove', move); document.addEventListener('mouseup', up)
+                      }}>
+                      <img src={img.url} alt="" className="w-full h-full object-cover" />
+                      <div className="absolute bottom-0 left-0 right-0 bg-black/60 text-white text-[10px] px-1 text-center">{Math.round(img.x)}%,{Math.round(img.y)}%</div>
+                    </div>
+                    <button type="button" onClick={() => setDecorImages(prev => prev.filter((_, j) => j !== i))} className="absolute -top-1 -right-1 w-5 h-5 bg-red-500 text-white rounded-full text-xs leading-5 cursor-pointer opacity-0 group-hover:opacity-100">×</button>
                   </div>
                 ))}
-                <label className="px-4 py-2 h-16 w-24 rounded bg-bg-secondary border border-bg-card text-text-secondary text-xs cursor-pointer hover:border-accent flex items-center justify-center transition-colors">
+                <label className="px-4 py-2 h-16 w-24 rounded bg-bg-secondary border border-dashed border-bg-card text-text-secondary text-xs cursor-pointer hover:border-accent flex items-center justify-center">
                   {uploading ? '上传中' : '+ 添加'}
                   <input type="file" accept="image/*" onChange={handleDecorUpload} className="hidden" disabled={uploading} />
                 </label>

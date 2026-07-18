@@ -278,23 +278,12 @@ export default function ArticleDetail() {
       )}
       {(article as any).decor_images && (() => {
         try {
-          const decors: string[] = JSON.parse((article as any).decor_images)
-          return decors.map((url: string, i: number) => {
-            const positions = [
-              'top-10 -left-4 rotate-[-8deg]', 'top-32 -right-2 rotate-[6deg]', 'bottom-40 -left-1 rotate-[-4deg]',
-              'bottom-20 -right-6 rotate-[10deg]', 'top-[60%] -right-4 rotate-[-6deg]', 'top-[20%] -left-6 rotate-[12deg]',
-              'bottom-10 left-[15%] rotate-[3deg]', 'top-[45%] right-[5%] rotate-[-10deg]',
-            ]
-            const pos = positions[i % positions.length]
-            return (
-              <img
-                key={i}
-                src={url}
-                alt=""
-                className={`fixed z-0 max-w-[180px] max-h-[180px] object-cover rounded-lg shadow-2xl opacity-50 hover:opacity-90 transition-opacity duration-500 ${pos}`}
-              />
-            )
-          })
+          const decors: { url: string; x: number; y: number }[] = JSON.parse((article as any).decor_images)
+          return decors.map((d, i) => (
+            <img key={i} src={d.url} alt=""
+              className="fixed z-0 max-w-[200px] max-h-[200px] object-cover rounded-lg shadow-2xl opacity-50 hover:opacity-95 transition-opacity duration-500"
+              style={{ left: `${d.x}%`, top: `${d.y}%`, transform: `translate(-50%, -50%) rotate(${(i * 3 - 6)}deg)` }} />
+          ))
         } catch { return null }
       })()}
       <div className="relative z-10 max-w-4xl mx-auto px-4 py-8">
