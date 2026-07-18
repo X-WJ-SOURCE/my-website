@@ -332,28 +332,35 @@ export default function AdminArticles() {
               </div>
 
               {decorImages.map((img, i) => (
-                <div key={i} className="absolute group" style={{ left: `${img.x}%`, top: `${img.y}%`, transform: 'translate(-50%, -50%)' }}>
+                <div key={i} className="absolute group cursor-move" style={{ left: `${img.x}%`, top: `${img.y}%`, transform: 'translate(-50%, -50%)' }}
+                  onMouseDown={(e) => {
+                    if ((e.target as HTMLElement).classList.contains('resize-handle')) return
+                    e.preventDefault()
+                    const container = (e.currentTarget as HTMLElement).parentElement?.getBoundingClientRect()
+                    if (!container) return
+                    const sx = e.clientX, sy = e.clientY, ox = img.x, oy = img.y
+                    const move = (ev: MouseEvent) => {
+                      const dx = (((ev.clientX - sx) / container.width) * 100)
+                      const dy = (((ev.clientY - sy) / container.height) * 100)
+                      setDecorImages(prev => prev.map((d, j) => j === i ? { ...d, x: Math.max(5, Math.min(95, ox + dx)), y: Math.max(5, Math.min(95, oy + dy)) } : d))
+                    }
+                    const up = () => { document.removeEventListener('mousemove', move); document.removeEventListener('mouseup', up) }
+                    document.addEventListener('mousemove', move); document.addEventListener('mouseup', up)
+                  }}>
                   <img src={img.url} alt="" className="rounded-lg shadow-2xl pointer-events-none" style={{ width: img.w }} draggable={false} />
-                  <div className="absolute -inset-1 cursor-move rounded-lg border border-accent/20 group-hover:border-accent transition-colors"
+                  <div className="absolute -bottom-1.5 -right-1.5 w-5 h-5 bg-white border-2 border-accent rounded resize-handle cursor-se-resize opacity-70 group-hover:opacity-100 transition-opacity"
                     onMouseDown={(e) => {
-                      e.preventDefault()
-                      const container = (e.currentTarget as HTMLElement).closest('.relative')?.getBoundingClientRect()
-                      if (!container) return
-                      const sx = e.clientX, sy = e.clientY, ox = img.x, oy = img.y
+                      e.preventDefault(); e.stopPropagation()
+                      const sx = e.clientX, ow = img.w
                       const move = (ev: MouseEvent) => {
-                        const dx = (((ev.clientX - sx) / container.width) * 100)
-                        const dy = (((ev.clientY - sy) / container.height) * 100)
-                        setDecorImages(prev => prev.map((d, j) => j === i ? { ...d, x: Math.max(5, Math.min(95, ox + dx)), y: Math.max(5, Math.min(95, oy + dy)) } : d))
+                        setDecorImages(prev => prev.map((d, j) => j === i ? { ...d, w: Math.max(40, Math.min(400, ow + (ev.clientX - sx))) } : d))
                       }
                       const up = () => { document.removeEventListener('mousemove', move); document.removeEventListener('mouseup', up) }
                       document.addEventListener('mousemove', move); document.addEventListener('mouseup', up)
                     }} />
-                  <div className="absolute -bottom-6 left-0 right-0 opacity-0 group-hover:opacity-100 transition-opacity flex gap-1 items-center justify-center">
-                    <input type="range" min="60" max="400" value={img.w}
-                      onChange={e => setDecorImages(prev => prev.map((d, j) => j === i ? { ...d, w: Number(e.target.value) } : d))}
-                      className="w-full h-1 accent-accent cursor-pointer" />
-                    <span className="text-[10px] text-text-secondary w-8">{img.w}</span>
-                  </div>
+                  <span className="absolute -top-5 left-1/2 -translate-x-1/2 text-[10px] text-text-secondary bg-bg-card/90 px-1.5 rounded opacity-0 group-hover:opacity-100 whitespace-nowrap">
+                    {img.w}px
+                  </span>
                 </div>
               ))}
             </div>
