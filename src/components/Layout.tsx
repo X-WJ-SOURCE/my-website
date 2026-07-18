@@ -7,6 +7,7 @@ const navLinks = [
   { to: '/timeline', label: '时光轴' },
   { to: '/guestbook', label: '留言板' },
   { to: '/wall', label: '涂鸦墙' },
+  { to: '/messages', label: '私信' },
 ];
 
 export default function Layout() {
