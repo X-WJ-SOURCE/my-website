@@ -25,13 +25,13 @@ commentsRouter.get('/article/:articleId', async (c) => {
 
 commentsRouter.post('/article/:articleId', async (c) => {
   const articleId = c.req.param('articleId')
-  const { nickname, content, image_url, visitor_id } = await c.req.json()
+  const { nickname, content, image_url, visitor_id, images } = await c.req.json()
 
   if (!content) return c.json({ error: 'Content is required' }, 400)
 
   const result = await db().execute({
-    sql: 'INSERT INTO comments (article_id, nickname, content, image_url, visitor_id) VALUES (?, ?, ?, ?, ?)',
-    args: [articleId, nickname || 'Anonymous', content, image_url || null, visitor_id || null]
+    sql: 'INSERT INTO comments (article_id, nickname, content, image_url, visitor_id, images) VALUES (?, ?, ?, ?, ?, ?)',
+    args: [articleId, nickname || 'Anonymous', content, image_url || null, visitor_id || null, images ? JSON.stringify(images) : null]
   })
 
   return c.json({ id: Number(result.lastInsertRowid), message: 'Comment posted' }, 201)

@@ -118,6 +118,8 @@ export default function ArticleDetail() {
 
   const [commentNickname, setCommentNickname] = useState("");
   const [commentContent, setCommentContent] = useState("");
+  const [commentImages, setCommentImages] = useState<string[]>([]);
+  const [uploadingComment, setUploadingComment] = useState(false);
   const [commentSubmitting, setCommentSubmitting] = useState(false);
   const [commentError, setCommentError] = useState<string | null>(null);
 
@@ -185,9 +187,11 @@ export default function ArticleDetail() {
         nickname: commentNickname.trim() || undefined,
         content: commentContent.trim(),
         visitor_id: visitorId,
+        images: commentImages.length > 0 ? commentImages : undefined,
       });
       setCommentNickname("");
       setCommentContent("");
+      setCommentImages([]);
       fetchComments();
     } catch (err) {
       setCommentError(
@@ -452,6 +456,31 @@ export default function ArticleDetail() {
             maxLength={1000}
             className="w-full px-3 py-2 mb-3 bg-bg-primary border border-bg-card rounded-lg text-text-primary placeholder-text-secondary text-sm focus:outline-none focus:border-accent resize-none"
           />
+          <div className="flex flex-wrap gap-2 mb-3">
+            {commentImages.map((url, i) => (
+              <div key={i} className="relative">
+                <img src={url} alt="" className="h-16 w-16 object-cover rounded" />
+                <button type="button" onClick={() => setCommentImages(prev => prev.filter((_, j) => j !== i))}
+                  className="absolute -top-1 -right-1 w-4 h-4 bg-red-500 text-white rounded-full text-[10px] leading-4 cursor-pointer">×</button>
+              </div>
+            ))}
+            {commentImages.length < 6 && (
+              <label className="h-16 w-16 rounded bg-bg-primary border border-dashed border-bg-card text-text-secondary text-[10px] cursor-pointer hover:border-accent flex items-center justify-center transition-colors">
+                {uploadingComment ? '...' : '+ 图片'}
+                <input type="file" accept="image/*" className="hidden" disabled={uploadingComment}
+                  onChange={async (e) => {
+                    const file = e.target.files?.[0]; if (!file) return
+                    setUploadingComment(true)
+                    try {
+                      const fd = new FormData(); fd.append('file', file)
+                      const result = await api('/upload', { method: 'POST', body: fd }) as { url: string }
+                      setCommentImages(prev => [...prev, result.url])
+                    } catch { setCommentError('图片上传失败') }
+                    finally { setUploadingComment(false); e.target.value = '' }
+                  }} />
+              </label>
+            )}
+          </div>
           {commentError && (
             <p className="text-red-400 text-sm mb-2">{commentError}</p>
           )}
@@ -544,12 +573,20 @@ export default function ArticleDetail() {
                     )}
                   </>
                 )}
-                {comment.image_url && (
-                  <img
-                    src={comment.image_url}
-                    alt="评论图片"
-                    className="mt-2 max-w-xs rounded-lg"
-                  />
+                {(comment.image_url || ((comment as any).images && JSON.parse((comment as any).images).length > 0)) && (
+                  <div className="flex gap-2 mt-2 flex-wrap">
+                    {comment.image_url && (
+                      <img src={comment.image_url} alt="评论图片" className="max-w-[120px] max-h-[120px] object-cover rounded" />
+                    )}
+                    {(() => {
+                      try {
+                        const imgs: string[] = JSON.parse((comment as any).images || '[]')
+                        return imgs.map((url, i) => (
+                          <img key={i} src={url} alt="" className="max-w-[120px] max-h-[120px] object-cover rounded" />
+                        ))
+                      } catch { return null }
+                    })()}
+                  </div>
                 )}
               </div>
             ))}
