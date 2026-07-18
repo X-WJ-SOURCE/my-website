@@ -92,7 +92,7 @@ export default function GraffitiWall() {
       await api.post("/wall", {
         nickname: nickname.trim() || undefined,
         content: content.trim() || null,
-        image_url: images.length > 0 ? images[0] : null,
+        image_url: null,
         images: images.length > 0 ? images : undefined,
         paper_style: paperStyle,
         visitor_id: visitorId,
@@ -424,17 +424,19 @@ export default function GraffitiWall() {
                       )}
                     </>
                   )}
-                  {(post.image_url || ((post as any).images && JSON.parse((post as any).images || '[]').length > 0)) && (
+                  {((post as any).images && (() => {
+                    try { return JSON.parse((post as any).images || '[]') as string[] } catch { return [] }
+                  })().length > 0) && (
                     <div className="flex gap-2 mt-2 flex-wrap">
-                      {post.image_url && (
-                        <img src={post.image_url} alt="" className="w-full rounded mb-2" />
-                      )}
                       {(() => {
-                        try { return JSON.parse((post as any).images || '[]').map((url: string, i: number) => (
+                        try { return (JSON.parse((post as any).images || '[]') as string[]).map((url: string, i: number) => (
                           <img key={i} src={url} alt="" className="w-full rounded mb-1" />
                         )) } catch { return null }
                       })()}
                     </div>
+                  )}
+                  {post.image_url && !((post as any).images && JSON.parse((post as any).images || '[]').length > 0) && (
+                    <img src={post.image_url} alt="" className="w-full rounded mb-2" />
                   )}
                   <p
                     className="text-xs mt-2"
