@@ -30,6 +30,7 @@ export default function AdminArticles() {
   const [decorImages, setDecorImages] = useState<{ url: string; x: number; y: number }[]>([]);
   const [saving, setSaving] = useState(false);
   const [uploading, setUploading] = useState(false);
+  const [previewDecor, setPreviewDecor] = useState(false);
 
   function parseDecorImages(raw: string | null): { url: string; x: number; y: number }[] {
     if (!raw) return []
@@ -262,7 +263,15 @@ export default function AdminArticles() {
               </div>
             </div>
             <div>
-              <label className="block text-sm text-text-secondary mb-2">装饰图（文章背景点缀，可拖动调位置）</label>
+              <label className="block text-sm text-text-secondary mb-2">
+                装饰图
+                {decorImages.length > 0 && (
+                  <button type="button" onClick={() => setPreviewDecor(!previewDecor)}
+                    className="ml-2 text-accent text-xs hover:underline cursor-pointer">
+                    {previewDecor ? '关闭预览' : '预览排版'}
+                  </button>
+                )}
+              </label>
               <div className="flex flex-wrap gap-3">
                 {decorImages.map((img, i) => (
                   <div key={i} className="relative group w-24">
@@ -303,6 +312,28 @@ export default function AdminArticles() {
             </div>
           </div>
         </form>
+
+        {previewDecor && decorImages.length > 0 && (
+          <div className="fixed inset-0 z-50 bg-black/70 flex items-center justify-center" onClick={() => setPreviewDecor(false)}>
+            <div className="relative w-[90vw] h-[80vh] bg-bg-primary rounded-2xl border border-bg-card overflow-hidden" onClick={e => e.stopPropagation()}>
+              <div className="absolute top-3 right-3 z-10">
+                <button onClick={() => setPreviewDecor(false)} className="px-3 py-1 bg-bg-card text-text-secondary rounded-lg text-sm hover:bg-bg-secondary cursor-pointer">关闭 ×</button>
+              </div>
+              <div className="absolute inset-0 bg-repeat opacity-5" style={{ backgroundImage: 'radial-gradient(circle, var(--text-secondary) 1px, transparent 1px)', backgroundSize: '30px 30px' }} />
+              <div className="absolute inset-0 flex items-center justify-center">
+                <div className="relative w-[60%] h-[70%] border-2 border-dashed border-accent/30 rounded-xl flex items-center justify-center">
+                  <span className="text-text-secondary text-sm">文章区域</span>
+                </div>
+              </div>
+              {decorImages.map((img, i) => (
+                <img key={i} src={img.url} alt=""
+                  className="absolute max-w-[180px] max-h-[180px] object-cover rounded-lg shadow-2xl"
+                  style={{ left: `${img.x}%`, top: `${img.y}%`, transform: `translate(-50%, -50%) rotate(${(i * 3 - 6)}deg)` }} />
+              ))}
+            </div>
+          </div>
+        )}
+
       )}
 
       {loading ? (
