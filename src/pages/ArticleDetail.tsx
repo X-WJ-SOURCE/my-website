@@ -278,11 +278,11 @@ export default function ArticleDetail() {
       )}
       {(article as any).decor_images && (() => {
         try {
-          const decors: { url: string; x: number; y: number }[] = JSON.parse((article as any).decor_images)
+          const decors: { url: string; x: number; y: number; w?: number }[] = JSON.parse((article as any).decor_images)
           return decors.map((d, i) => (
             <img key={i} src={d.url} alt=""
-              className="fixed z-0 max-w-[200px] max-h-[200px] object-cover rounded-lg shadow-2xl opacity-50 hover:opacity-95 transition-opacity duration-500"
-              style={{ left: `${d.x}%`, top: `${d.y}%`, transform: `translate(-50%, -50%) rotate(${(i * 3 - 6)}deg)` }} />
+              className="fixed z-0 object-cover rounded-lg shadow-2xl opacity-50 hover:opacity-95 transition-opacity duration-500"
+              style={{ left: `${d.x}%`, top: `${d.y}%`, width: d.w || 160, transform: `translate(-50%, -50%) rotate(${(i * 3 - 6)}deg)` }} />
           ))
         } catch { return null }
       })()}

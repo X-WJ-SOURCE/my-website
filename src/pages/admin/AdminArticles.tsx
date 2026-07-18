@@ -27,12 +27,12 @@ export default function AdminArticles() {
   const [visibility, setVisibility] = useState<'public' | 'private'>('public');
   const [tags, setTags] = useState('');
   const [coverUrl, setCoverUrl] = useState('');
-  const [decorImages, setDecorImages] = useState<{ url: string; x: number; y: number }[]>([]);
+  const [decorImages, setDecorImages] = useState<{ url: string; x: number; y: number; w: number }[]>([]);
   const [saving, setSaving] = useState(false);
   const [uploading, setUploading] = useState(false);
   const [previewDecor, setPreviewDecor] = useState(false);
 
-  function parseDecorImages(raw: string | null): { url: string; x: number; y: number }[] {
+  function parseDecorImages(raw: string | null): { url: string; x: number; y: number; w: number }[] {
     if (!raw) return []
     try { return JSON.parse(raw) } catch { return [] }
   }
@@ -139,7 +139,7 @@ export default function AdminArticles() {
       const fd = new FormData()
       fd.append('file', file)
       const result = await api('/upload', { method: 'POST', body: fd }) as { url: string }
-      setDecorImages(prev => [...prev, { url: result.url, x: 50 + (prev.length * 10) % 40, y: 50 + (prev.length * 15) % 30 }])
+      setDecorImages(prev => [...prev, { url: result.url, x: 50 + (prev.length * 10) % 40, y: 50 + (prev.length * 15) % 30, w: 160 }])
     } catch (err) {
       setError(err instanceof Error ? err.message : '图片上传失败')
     } finally {
@@ -314,21 +314,46 @@ export default function AdminArticles() {
         </form>
 
         {previewDecor && decorImages.length > 0 && (
-          <div className="fixed inset-0 z-50 bg-black/70 flex items-center justify-center" onClick={() => setPreviewDecor(false)}>
-            <div className="relative w-[90vw] h-[80vh] bg-bg-primary rounded-2xl border border-bg-card overflow-hidden" onClick={e => e.stopPropagation()}>
+          <div className="fixed inset-0 z-50 bg-black/80 flex items-center justify-center" onClick={() => setPreviewDecor(false)}>
+            <div className="relative w-[92vw] h-[88vh] bg-bg-primary rounded-2xl border border-bg-card overflow-hidden" onClick={e => e.stopPropagation()}>
+              <div className="absolute top-3 left-3 z-10 text-sm text-text-secondary">拖动图片调位置，拖右下角调大小</div>
               <div className="absolute top-3 right-3 z-10">
                 <button onClick={() => setPreviewDecor(false)} className="px-3 py-1 bg-bg-card text-text-secondary rounded-lg text-sm hover:bg-bg-secondary cursor-pointer">关闭 ×</button>
               </div>
-              <div className="absolute inset-0 bg-repeat opacity-5" style={{ backgroundImage: 'radial-gradient(circle, var(--text-secondary) 1px, transparent 1px)', backgroundSize: '30px 30px' }} />
-              <div className="absolute inset-0 flex items-center justify-center">
-                <div className="relative w-[60%] h-[70%] border-2 border-dashed border-accent/30 rounded-xl flex items-center justify-center">
-                  <span className="text-text-secondary text-sm">文章区域</span>
+              <div className="absolute inset-0 flex items-center justify-center pointer-events-none">
+                <div className="w-[60%] h-[70%] border-2 border-dashed border-accent/20 rounded-xl flex items-center justify-center">
+                  <span className="text-text-secondary text-sm opacity-50">文章区域</span>
                 </div>
               </div>
               {decorImages.map((img, i) => (
-                <img key={i} src={img.url} alt=""
-                  className="absolute max-w-[180px] max-h-[180px] object-cover rounded-lg shadow-2xl"
-                  style={{ left: `${img.x}%`, top: `${img.y}%`, transform: `translate(-50%, -50%) rotate(${(i * 3 - 6)}deg)` }} />
+                <div key={i} className="absolute group" style={{ left: `${img.x}%`, top: `${img.y}%`, transform: 'translate(-50%, -50%)', width: img.w }}>
+                  <img src={img.url} alt="" className="w-full object-cover rounded-lg shadow-2xl select-none pointer-events-none" />
+                  <div className="absolute -inset-2 cursor-move rounded-lg border-2 border-accent/30 group-hover:border-accent transition-colors"
+                    onMouseDown={(e) => {
+                      e.preventDefault()
+                      const sx = e.clientX, sy = e.clientY, ox = img.x, oy = img.y
+                      const move = (ev: MouseEvent) => {
+                        const rect = e.currentTarget?.parentElement?.parentElement?.getBoundingClientRect()
+                        if (!rect) return
+                        const dx = ((ev.clientX - sx) / rect.width) * 100
+                        const dy = ((ev.clientY - sy) / rect.height) * 100
+                        setDecorImages(prev => prev.map((d, j) => j === i ? { ...d, x: Math.max(0, Math.min(100, ox + dx)), y: Math.max(0, Math.min(100, oy + dy)) } : d))
+                      }
+                      const up = () => { document.removeEventListener('mousemove', move); document.removeEventListener('mouseup', up) }
+                      document.addEventListener('mousemove', move); document.addEventListener('mouseup', up)
+                    }} />
+                  <div className="absolute -bottom-1.5 -right-1.5 w-4 h-4 bg-accent rounded cursor-se-resize opacity-0 group-hover:opacity-100 transition-opacity border border-white"
+                    onMouseDown={(e) => {
+                      e.preventDefault(); e.stopPropagation()
+                      const sx = e.clientX, ow = img.w
+                      const move = (ev: MouseEvent) => {
+                        const nw = Math.max(60, Math.min(400, ow + (ev.clientX - sx)))
+                        setDecorImages(prev => prev.map((d, j) => j === i ? { ...d, w: nw } : d))
+                      }
+                      const up = () => { document.removeEventListener('mousemove', move); document.removeEventListener('mouseup', up) }
+                      document.addEventListener('mousemove', move); document.addEventListener('mouseup', up)
+                    }} />
+                </div>
               ))}
             </div>
           </div>
