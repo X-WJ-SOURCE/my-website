@@ -1,8 +1,6 @@
 import { Hono } from 'hono'
 import { cors } from 'hono/cors'
 import { serveStatic } from '@hono/node-server/serve-static'
-import { readFile } from 'fs/promises'
-import { existsSync, existsSync as exists } from 'fs'
 import path from 'path'
 import { fileURLToPath } from 'url'
 
@@ -20,25 +18,6 @@ import adminRouter from './routes/admin.js'
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url))
 const isProduction = process.env.NODE_ENV === 'production'
-const dataDir = process.env.DATA_DIR || __dirname
-const uploadsDir = path.join(dataDir, 'uploads')
-
-function getMimeType(ext: string): string {
-  const mimeTypes: Record<string, string> = {
-    '.html': 'text/html',
-    '.js': 'application/javascript',
-    '.css': 'text/css',
-    '.json': 'application/json',
-    '.svg': 'image/svg+xml',
-    '.jpg': 'image/jpeg',
-    '.jpeg': 'image/jpeg',
-    '.png': 'image/png',
-    '.gif': 'image/gif',
-    '.webp': 'image/webp',
-    '.ico': 'image/x-icon',
-  }
-  return mimeTypes[ext] || 'application/octet-stream'
-}
 
 const app = new Hono()
 
@@ -48,12 +27,20 @@ app.use('/*', cors({
 }))
 
 app.use('/uploads/*', async (c) => {
-  const filePath = path.join(uploadsDir, c.req.path.replace('/uploads/', ''))
-  if (!existsSync(filePath)) return c.notFound()
-  const file = await readFile(filePath)
-  const ext = path.extname(filePath).toLowerCase()
-  c.header('Content-Type', getMimeType(ext))
-  return c.body(file as any)
+  const filename = c.req.path.replace('/uploads/', '')
+  if (!filename) return c.notFound()
+
+  const row = (await db().execute({
+    sql: 'SELECT mime_type, data FROM uploads WHERE id = ?',
+    args: [filename]
+  })).rows[0] as any
+
+  if (!row) return c.notFound()
+
+  const buffer = Buffer.from(row.data, 'base64')
+  c.header('Content-Type', row.mime_type)
+  c.header('Cache-Control', 'public, max-age=31536000')
+  return c.body(buffer as any)
 })
 
 app.get('/api/health', (c) => c.json({ status: 'ok' }))

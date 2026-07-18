@@ -97,5 +97,11 @@ export async function initDb() {
       visitor_id TEXT NOT NULL,
       viewed_at TEXT NOT NULL DEFAULT (datetime('now'))
     );
+    CREATE TABLE IF NOT EXISTS uploads (
+      id TEXT PRIMARY KEY,
+      filename TEXT NOT NULL,
+      mime_type TEXT NOT NULL,
+      data BLOB NOT NULL
+    );
   COMMIT;`)
 }
