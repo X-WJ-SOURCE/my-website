@@ -59,6 +59,12 @@ export default function GraffitiWall() {
   const [editContent, setEditContent] = useState("");
   const [editSubmitting, setEditSubmitting] = useState(false);
 
+  const [wallComments, setWallComments] = useState<Record<number, any[]>>({});
+  const [openComments, setOpenComments] = useState<Set<number>>(new Set());
+  const [commentText, setCommentText] = useState<Record<number, string>>({});
+  const [commentNick, setCommentNick] = useState<Record<number, string>>({});
+  const [commentLoading, setCommentLoading] = useState(false);
+
   const formRef = useRef<HTMLDivElement>(null);
   const limit = 6;
   const totalPages = Math.ceil(total / limit);
@@ -170,6 +176,55 @@ export default function GraffitiWall() {
       );
     }
   };
+
+  const toggleComments = async (wallId: number) => {
+    const newSet = new Set(openComments)
+    if (newSet.has(wallId)) {
+      newSet.delete(wallId)
+      setOpenComments(newSet)
+    } else {
+      newSet.add(wallId)
+      setOpenComments(newSet)
+      setCommentLoading(true)
+      try {
+        const data = await api.get(`/wall-comments/wall/${wallId}`)
+        setWallComments(prev => ({ ...prev, [wallId]: data as any[] }))
+      } catch {}
+      finally { setCommentLoading(false) }
+    }
+  }
+
+  const handleCommentSubmit = async (wallId: number) => {
+    const text = commentText[wallId]?.trim()
+    if (!text) return
+    try {
+      await api.post(`/wall-comments/wall/${wallId}`, {
+        nickname: commentNick[wallId]?.trim() || undefined,
+        content: text,
+        visitor_id: visitorId,
+      })
+      setCommentText(prev => ({ ...prev, [wallId]: '' }))
+      const data = await api.get(`/wall-comments/wall/${wallId}`)
+      setWallComments(prev => ({ ...prev, [wallId]: data as any[] }))
+    } catch {}
+  }
+
+  const handleEditWallComment = async (commentId: number, wallId: number, content: string) => {
+    try {
+      await api.put(`/wall-comments/${commentId}`, { content, visitor_id: visitorId })
+      const data = await api.get(`/wall-comments/wall/${wallId}`)
+      setWallComments(prev => ({ ...prev, [wallId]: data as any[] }))
+    } catch {}
+  }
+
+  const handleDeleteWallComment = async (commentId: number, wallId: number) => {
+    if (!confirm('删除这条评论？')) return
+    try {
+      await api.delete(`/wall-comments/${commentId}/own?visitor_id=${visitorId}`)
+      const data = await api.get(`/wall-comments/wall/${wallId}`)
+      setWallComments(prev => ({ ...prev, [wallId]: data as any[] }))
+    } catch {}
+  }
 
   return (
     <div className="max-w-7xl mx-auto px-4 py-8">
@@ -356,6 +411,69 @@ export default function GraffitiWall() {
                   >
                     {formatTime(post.created_at)}
                   </p>
+
+                  <div className="mt-3 pt-3 border-t" style={{ borderColor: `${style.accentColor}33` }}>
+                    <button onClick={() => toggleComments(post.id)}
+                      className="text-xs cursor-pointer hover:underline" style={{ color: style.accentColor }}>
+                      💬 评论 ({wallComments[post.id]?.length || 0})
+                    </button>
+
+                    {openComments.has(post.id) && (
+                      <div className="mt-2">
+                        {commentLoading ? <p className="text-xs text-text-secondary">加载中...</p> :
+                          (wallComments[post.id] || []).map((c: any, ci: number) => (
+                            <div key={ci} className="mb-2 pl-2 border-l-2" style={{ borderColor: `${style.accentColor}44` }}>
+                              {c.editing ? (
+                                <div className="flex gap-1">
+                                  <input value={c._editText || c.content} onChange={(e) => {
+                                    const copy = [...(wallComments[post.id] || [])]
+                                    copy[ci] = { ...copy[ci], _editText: e.target.value }
+                                    setWallComments(prev => ({ ...prev, [post.id]: copy }))
+                                  }} className="flex-1 px-2 py-1 bg-bg-primary border border-bg-card rounded text-xs text-text-primary outline-none" />
+                                  <button onClick={() => {
+                                    handleEditWallComment(c.id, post.id, wallComments[post.id][ci]._editText || c.content)
+                                    const copy = [...(wallComments[post.id] || [])]
+                                    copy[ci] = { ...copy[ci], editing: false }
+                                    setWallComments(prev => ({ ...prev, [post.id]: copy }))
+                                  }} className="px-2 py-1 bg-accent text-white rounded text-xs cursor-pointer">保存</button>
+                                </div>
+                              ) : (
+                                <>
+                                  <p className="text-xs text-text-secondary">
+                                    <span className="font-medium text-text-primary">{c.nickname || '匿名'}</span> {c.content}
+                                  </p>
+                                  <div className="flex gap-2 text-[10px] mt-0.5" style={{ color: `${style.accentColor}88` }}>
+                                    <span>{formatTime(c.created_at)}</span>
+                                    {c.edited_at && <span>已编辑</span>}
+                                    {c.visitor_id === visitorId && (
+                                      <>
+                                        <button onClick={() => {
+                                          const copy = [...(wallComments[post.id] || [])]
+                                          copy[ci] = { ...copy[ci], editing: true, _editText: c.content }
+                                          setWallComments(prev => ({ ...prev, [post.id]: copy }))
+                                        }} className="hover:underline cursor-pointer">编辑</button>
+                                        <button onClick={() => handleDeleteWallComment(c.id, post.id)} className="hover:underline cursor-pointer">删除</button>
+                                      </>
+                                    )}
+                                  </div>
+                                </>
+                              )}
+                            </div>
+                          ))}
+                        <div className="flex gap-1 mt-2">
+                          <input placeholder="昵称" value={commentNick[post.id] || ''}
+                            onChange={e => setCommentNick(prev => ({ ...prev, [post.id]: e.target.value }))}
+                            className="w-16 px-2 py-1 bg-bg-primary border border-bg-card rounded text-xs text-text-primary outline-none" />
+                          <input placeholder="写评论..." value={commentText[post.id] || ''}
+                            onChange={e => setCommentText(prev => ({ ...prev, [post.id]: e.target.value }))}
+                            onKeyDown={e => e.key === 'Enter' && handleCommentSubmit(post.id)}
+                            className="flex-1 px-2 py-1 bg-bg-primary border border-bg-card rounded text-xs text-text-primary outline-none" />
+                          <button onClick={() => handleCommentSubmit(post.id)}
+                            className="px-2 py-1 bg-accent text-white rounded text-xs cursor-pointer">发送</button>
+                        </div>
+                      </div>
+                    )}
+                  </div>
                 </div>
               );
             })}

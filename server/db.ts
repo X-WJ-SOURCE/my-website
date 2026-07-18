@@ -51,6 +51,17 @@ export async function initDb() {
   try { await c.execute('ALTER TABLE wall_posts ADD COLUMN edited_at TEXT') } catch (_) {}
   try { await c.execute('ALTER TABLE comments ADD COLUMN images TEXT') } catch (_) {}
   try { await c.execute('ALTER TABLE wall_posts ADD COLUMN images TEXT') } catch (_) {}
+  try { await c.execute(`
+    CREATE TABLE IF NOT EXISTS wall_comments (
+      id INTEGER PRIMARY KEY AUTOINCREMENT,
+      wall_id INTEGER NOT NULL REFERENCES wall_posts(id) ON DELETE CASCADE,
+      nickname TEXT DEFAULT 'Anonymous',
+      content TEXT NOT NULL,
+      visitor_id TEXT,
+      edited_at TEXT,
+      created_at TEXT NOT NULL DEFAULT (datetime('now'))
+    )
+  `) } catch (_) {}
   await c.executeMultiple(`BEGIN;
     CREATE TABLE IF NOT EXISTS tags (
       id INTEGER PRIMARY KEY AUTOINCREMENT,
