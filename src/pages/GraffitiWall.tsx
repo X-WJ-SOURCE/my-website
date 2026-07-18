@@ -60,7 +60,7 @@ export default function GraffitiWall() {
   const [editSubmitting, setEditSubmitting] = useState(false);
 
   const formRef = useRef<HTMLDivElement>(null);
-  const limit = 30;
+  const limit = 12;
   const totalPages = Math.ceil(total / limit);
 
   const fetchPosts = useCallback(() => {
@@ -168,12 +168,6 @@ export default function GraffitiWall() {
       setSubmitError(
         err instanceof Error ? err.message : "删除失败"
       );
-    }
-  };
-
-  const loadMore = () => {
-    if (page < totalPages) {
-      setPage((p) => p + 1);
     }
   };
 
@@ -367,13 +361,28 @@ export default function GraffitiWall() {
             })}
           </div>
 
-          {page < totalPages && (
-            <div className="flex justify-center mt-8">
-              <button
-                onClick={loadMore}
-                className="px-6 py-2.5 bg-accent text-white rounded-lg text-sm hover:opacity-80 transition-opacity cursor-pointer"
-              >
-                加载更多
+          {totalPages > 1 && (
+            <div className="flex justify-center items-center gap-2 mt-8">
+              <button onClick={() => setPage(p => Math.max(1, p - 1))} disabled={page <= 1}
+                className="px-3 py-1.5 rounded bg-bg-card text-text-secondary text-sm disabled:opacity-30 cursor-pointer hover:bg-bg-secondary">
+                上一页
+              </button>
+              {Array.from({ length: Math.min(totalPages, 7) }, (_, i) => {
+                let p: number
+                if (totalPages <= 7) p = i + 1
+                else if (page <= 4) p = i + 1
+                else if (page >= totalPages - 3) p = totalPages - 6 + i
+                else p = page - 3 + i
+                return (
+                  <button key={p} onClick={() => setPage(p)}
+                    className={`w-8 h-8 rounded text-sm cursor-pointer ${p === page ? 'bg-accent text-white' : 'bg-bg-card text-text-secondary hover:bg-bg-secondary'}`}>
+                    {p}
+                  </button>
+                )
+              })}
+              <button onClick={() => setPage(p => Math.min(totalPages, p + 1))} disabled={page >= totalPages}
+                className="px-3 py-1.5 rounded bg-bg-card text-text-secondary text-sm disabled:opacity-30 cursor-pointer hover:bg-bg-secondary">
+                下一页
               </button>
             </div>
           )}
