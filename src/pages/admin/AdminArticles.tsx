@@ -314,56 +314,53 @@ export default function AdminArticles() {
         </form>
 
         {previewDecor && decorImages.length > 0 && (
-          <div className="fixed inset-0 z-50 bg-black/90 flex items-center justify-center" onClick={() => setPreviewDecor(false)}>
-            <div className="relative w-[92vw] h-[88vh] bg-bg-primary rounded-2xl border border-bg-card overflow-hidden" onClick={e => e.stopPropagation()}>
-              <div className="absolute top-3 left-3 z-10 text-sm text-text-secondary">拖动图片调位置 | 拖右下角 ◧ 调大小</div>
-              <div className="absolute top-3 right-3 z-10 flex gap-2">
-                <button onClick={() => setPreviewDecor(false)} className="px-3 py-1 bg-accent text-white rounded-lg text-sm cursor-pointer">完成</button>
-              </div>
+          <div className="fixed inset-0 z-50 bg-black/95 flex items-center justify-center overflow-hidden" onClick={() => setPreviewDecor(false)}>
+            <div className="absolute top-3 right-3 z-10 flex gap-2">
+              <button onClick={() => setPreviewDecor(false)} className="px-4 py-1.5 bg-accent text-white rounded-lg text-sm cursor-pointer font-bold">完成</button>
+            </div>
+            <div className="absolute top-3 left-3 z-10 text-sm text-text-secondary">拖动图片 | ◧ 缩放</div>
 
-              <div className="absolute inset-[8%_15%] border-2 border-dashed border-accent/30 rounded-xl p-6 overflow-auto pointer-events-none">
-                <h2 className="text-lg font-bold text-text-primary mb-2">{title || '文章标题'}</h2>
-                <div className="flex gap-2 mb-3">
+            <div className="absolute w-full max-w-4xl mx-auto left-1/2 -translate-x-1/2 h-full overflow-auto pointer-events-none px-4 py-8" style={{ scrollbarWidth: 'none' }}>
+              <div className="rounded-xl border border-dashed border-accent/20 p-6">
+                <h2 className="text-xl font-bold text-text-primary mb-2">{title || '文章标题'}</h2>
+                <div className="flex gap-2 mb-3 flex-wrap">
                   {tags.split(',').filter(Boolean).map((t, i) => (
                     <span key={i} className="px-2 py-0.5 text-xs rounded-full bg-accent/20 text-accent">{t.trim()}</span>
                   ))}
                 </div>
                 <p className="text-sm text-text-secondary whitespace-pre-wrap line-clamp-6">{content || '文章内容预览...'}</p>
               </div>
+            </div>
 
-              {decorImages.map((img, i) => (
-                <div key={i} className="absolute group cursor-move" style={{ left: `${img.x}%`, top: `${img.y}%`, transform: 'translate(-50%, -50%)' }}
+            {decorImages.map((img, i) => {
+              const vw = window.innerWidth
+              const vh = window.innerHeight
+              return (<div key={i} className="fixed cursor-move select-none" style={{ left: `${img.x}%`, top: `${img.y}%`, transform: 'translate(-50%, -50%)', zIndex: 10 }}
+                onMouseDown={(e) => {
+                  if ((e.target as HTMLElement).classList.contains('resize-handle')) return
+                  e.preventDefault()
+                  const sx = e.clientX, sy = e.clientY, ox = img.x, oy = img.y
+                  const move = (ev: MouseEvent) => {
+                    const dx = ((ev.clientX - sx) / vw) * 100
+                    const dy = ((ev.clientY - sy) / vh) * 100
+                    setDecorImages(prev => prev.map((d, j) => j === i ? { ...d, x: Math.max(2, Math.min(98, ox + dx)), y: Math.max(2, Math.min(98, oy + dy)) } : d))
+                  }
+                  const up = () => { document.removeEventListener('mousemove', move); document.removeEventListener('mouseup', up) }
+                  document.addEventListener('mousemove', move); document.addEventListener('mouseup', up)
+                }}>
+                <img src={img.url} alt="" className="rounded-lg shadow-2xl pointer-events-none" style={{ width: img.w }} draggable={false} />
+                <div className="absolute -bottom-1.5 -right-1.5 w-5 h-5 bg-white border-2 border-accent rounded resize-handle cursor-se-resize opacity-60 hover:opacity-100"
                   onMouseDown={(e) => {
-                    if ((e.target as HTMLElement).classList.contains('resize-handle')) return
-                    e.preventDefault()
-                    const container = (e.currentTarget as HTMLElement).parentElement?.getBoundingClientRect()
-                    if (!container) return
-                    const sx = e.clientX, sy = e.clientY, ox = img.x, oy = img.y
+                    e.preventDefault(); e.stopPropagation()
+                    const sx = e.clientX, ow = img.w
                     const move = (ev: MouseEvent) => {
-                      const dx = (((ev.clientX - sx) / container.width) * 100)
-                      const dy = (((ev.clientY - sy) / container.height) * 100)
-                      setDecorImages(prev => prev.map((d, j) => j === i ? { ...d, x: Math.max(5, Math.min(95, ox + dx)), y: Math.max(5, Math.min(95, oy + dy)) } : d))
+                      setDecorImages(prev => prev.map((d, j) => j === i ? { ...d, w: Math.max(40, Math.min(500, ow + (ev.clientX - sx))) } : d))
                     }
                     const up = () => { document.removeEventListener('mousemove', move); document.removeEventListener('mouseup', up) }
                     document.addEventListener('mousemove', move); document.addEventListener('mouseup', up)
-                  }}>
-                  <img src={img.url} alt="" className="rounded-lg shadow-2xl pointer-events-none" style={{ width: img.w }} draggable={false} />
-                  <div className="absolute -bottom-1.5 -right-1.5 w-5 h-5 bg-white border-2 border-accent rounded resize-handle cursor-se-resize opacity-70 group-hover:opacity-100 transition-opacity"
-                    onMouseDown={(e) => {
-                      e.preventDefault(); e.stopPropagation()
-                      const sx = e.clientX, ow = img.w
-                      const move = (ev: MouseEvent) => {
-                        setDecorImages(prev => prev.map((d, j) => j === i ? { ...d, w: Math.max(40, Math.min(400, ow + (ev.clientX - sx))) } : d))
-                      }
-                      const up = () => { document.removeEventListener('mousemove', move); document.removeEventListener('mouseup', up) }
-                      document.addEventListener('mousemove', move); document.addEventListener('mouseup', up)
-                    }} />
-                  <span className="absolute -top-5 left-1/2 -translate-x-1/2 text-[10px] text-text-secondary bg-bg-card/90 px-1.5 rounded opacity-0 group-hover:opacity-100 whitespace-nowrap">
-                    {img.w}px
-                  </span>
-                </div>
-              ))}
-            </div>
+                  }} />
+              </div>)})
+            })}
           </div>
         )}
 
