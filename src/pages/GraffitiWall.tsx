@@ -519,20 +519,27 @@ export default function GraffitiWall() {
 
   const handleDrawStart = (e: React.MouseEvent) => {
     const ctx = ctxRef.current
-    if (!ctx) return
+    const c = canvasRef.current
+    if (!ctx || !c) return
+    const rect = c.getBoundingClientRect()
+    const x = e.clientX - rect.left
+    const y = e.clientY - rect.top
     ctx.beginPath()
-    ctx.moveTo(e.nativeEvent.offsetX, e.nativeEvent.offsetY)
+    ctx.moveTo(x, y)
     ctx.strokeStyle = drawColor; ctx.lineWidth = 3
-    ctxRef.current = ctx
   }
 
   const handleDrawMove = (e: React.MouseEvent) => {
     const ctx = ctxRef.current
-    if (!ctx || e.buttons !== 1) return
-    ctx.lineTo(e.nativeEvent.offsetX, e.nativeEvent.offsetY)
+    const c = canvasRef.current
+    if (!ctx || !c || e.buttons !== 1) return
+    const rect = c.getBoundingClientRect()
+    const x = e.clientX - rect.left
+    const y = e.clientY - rect.top
+    ctx.lineTo(x, y)
     ctx.stroke()
     ctx.beginPath()
-    ctx.moveTo(e.nativeEvent.offsetX, e.nativeEvent.offsetY)
+    ctx.moveTo(x, y)
   }
 
   const handleSubmitDrawing = async () => {
