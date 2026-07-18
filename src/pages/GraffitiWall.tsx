@@ -240,8 +240,11 @@ export default function GraffitiWall() {
   const renderDrawings = useCallback(() => {
     const c = bgCanvasRef.current
     if (!c) return
+    const h = Math.max(document.body.scrollHeight, window.innerHeight)
     c.width = window.innerWidth
-    c.height = window.innerHeight
+    c.height = h
+    c.style.width = window.innerWidth + 'px'
+    c.style.height = h + 'px'
     const ctx = c.getContext('2d')
     if (!ctx) return
     ctx.clearRect(0, 0, c.width, c.height)
@@ -250,9 +253,7 @@ export default function GraffitiWall() {
       if (!points.length) return
       ctx.beginPath()
       ctx.moveTo(points[0].x, points[0].y)
-      for (let i = 1; i < points.length; i++) {
-        ctx.lineTo(points[i].x, points[i].y)
-      }
+      for (let i = 1; i < points.length; i++) ctx.lineTo(points[i].x, points[i].y)
       ctx.strokeStyle = d.color; ctx.lineWidth = 3
       ctx.lineCap = 'round'; ctx.lineJoin = 'round'
       ctx.stroke()
@@ -260,16 +261,28 @@ export default function GraffitiWall() {
   }, [drawings])
 
   useEffect(() => { fetchDrawings() }, [])
+
+  useEffect(() => {
+    const onScroll = () => {
+      const c = bgCanvasRef.current
+      if (c) { c.style.height = document.body.scrollHeight + 'px'; c.height = document.body.scrollHeight }
+    }
+    window.addEventListener('scroll', onScroll)
+    window.addEventListener('resize', onScroll)
+    return () => { window.removeEventListener('scroll', onScroll); window.removeEventListener('resize', onScroll) }
+  }, [])
+
   useEffect(() => { if (drawings.length) renderDrawings() }, [drawings, renderDrawings])
 
   useEffect(() => {
     if (!drawing) return
     const c = bgCanvasRef.current
     if (!c) return
+    const h = document.body.scrollHeight
     c.width = window.innerWidth
-    c.height = window.innerHeight
-    const ctx = c.getContext('2d')
-    if (!ctx) return
+    c.height = h
+    c.style.width = '100%'
+    c.style.height = h + 'px'
     c.style.pointerEvents = 'auto'
     fetchDrawings()
     return () => { if (c) c.style.pointerEvents = 'none' }
@@ -277,23 +290,41 @@ export default function GraffitiWall() {
 
   const handleBgDown = async (e: React.MouseEvent) => {
     if (!drawing) return
+
+    if (drawColor === 'eraser') {
+      const px = e.pageX, py = e.pageY
+      let closest: any = null, minDist = 30
+      for (const d of drawings) {
+        const points = JSON.parse(d.stroke_data) as { x: number; y: number }[]
+        for (const p of points) {
+          const dist = Math.hypot(p.x - px, p.y - py)
+          if (dist < minDist) { minDist = dist; closest = d }
+        }
+      }
+      if (closest) {
+        await api.delete(`/wall-drawings/${closest.id}`)
+        fetchDrawings()
+      }
+      return
+    }
+
     const c = bgCanvasRef.current
     if (!c) return
     const ctx = c.getContext('2d')
     if (!ctx) return
     const points: { x: number; y: number }[] = []
     ctx.beginPath()
-    ctx.moveTo(e.clientX, e.clientY)
-    points.push({ x: e.clientX, y: e.clientY })
+    ctx.moveTo(e.pageX, e.pageY)
+    points.push({ x: e.pageX, y: e.pageY })
     ctx.strokeStyle = drawColor; ctx.lineWidth = 3
     ctx.lineCap = 'round'; ctx.lineJoin = 'round'
 
     const onMove = (ev: MouseEvent) => {
-      ctx.lineTo(ev.clientX, ev.clientY)
+      ctx.lineTo(ev.pageX, ev.pageY)
       ctx.stroke()
       ctx.beginPath()
-      ctx.moveTo(ev.clientX, ev.clientY)
-      points.push({ x: ev.clientX, y: ev.clientY })
+      ctx.moveTo(ev.pageX, ev.pageY)
+      points.push({ x: ev.pageX, y: ev.pageY })
     }
     const onUp = async () => {
       document.removeEventListener('mousemove', onMove)
@@ -311,16 +342,20 @@ export default function GraffitiWall() {
     <div className="max-w-7xl mx-auto px-4 py-8 relative">
       <canvas ref={bgCanvasRef}
         onMouseDown={handleBgDown}
-        className="fixed inset-0 z-30 pointer-events-none" style={{ cursor: drawing ? 'crosshair' : 'default' }} />
+        className="absolute inset-0 z-0 pointer-events-none" style={{ cursor: drawing ? 'crosshair' : 'default' }} />
 
       {drawing && (
-        <div className="fixed top-4 left-1/2 -translate-x-1/2 z-40 flex gap-2 bg-bg-card/95 backdrop-blur rounded-xl px-4 py-2">
+        <div className="fixed top-4 left-1/2 -translate-x-1/2 z-40 flex gap-2 bg-bg-card/95 backdrop-blur rounded-xl px-4 py-2 items-center flex-wrap">
           {['#818cf8', '#f59e0b', '#ef4444', '#22c55e', '#ffffff', '#06b6d4', '#ec4899'].map(c => (
             <button key={c} onClick={() => setDrawColor(c)}
               className="w-6 h-6 rounded-full border-2 cursor-pointer transition-transform hover:scale-110"
               style={{ backgroundColor: c, borderColor: drawColor === c ? '#fff' : 'rgba(255,255,255,0.3)' }} />
           ))}
-          <span className="text-xs text-text-secondary ml-2 leading-6">按住拖动涂鸦</span>
+          <button onClick={() => { setDrawColor('eraser') }}
+            className={`px-2 py-0.5 text-xs rounded cursor-pointer ${drawColor === 'eraser' ? 'bg-accent text-white' : 'bg-bg-secondary text-text-secondary'}`}>
+            🧹 擦除
+          </button>
+          <span className="text-xs text-text-secondary">按住拖动涂鸦 | 选🧹擦除后点击线条删除</span>
         </div>
       )}
       <h1 className="text-3xl font-bold text-text-primary mb-2">

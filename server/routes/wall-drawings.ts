@@ -8,7 +8,11 @@ drawingsRouter.get('/', async (c) => {
   return c.json(drawings)
 })
 
-drawingsRouter.post('/', async (c) => {
+drawingsRouter.delete('/:id', async (c) => {
+  const id = c.req.param('id')
+  await db().execute({ sql: 'DELETE FROM wall_drawings WHERE id = ?', args: [id] })
+  return c.json({ message: 'Deleted' })
+})
   const { stroke_data, color } = await c.req.json()
   if (!stroke_data || !color) return c.json({ error: 'Missing data' }, 400)
   await db().execute({
