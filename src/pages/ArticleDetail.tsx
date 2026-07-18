@@ -270,7 +270,13 @@ export default function ArticleDetail() {
   const cover = getCover(article.id);
 
   return (
-    <div className="max-w-4xl mx-auto px-4 py-8">
+    <div className="relative min-h-screen">
+      {article.cover_url && (
+        <div className="fixed inset-0 z-0">
+          <img src={article.cover_url} alt="" className="w-full h-full object-cover blur-2xl opacity-15 scale-110" />
+        </div>
+      )}
+      <div className="relative z-10 max-w-4xl mx-auto px-4 py-8">
       <div className="relative rounded-xl overflow-hidden mb-6">
         {article.cover_url ? (
           <div className="relative max-h-80">
@@ -441,6 +447,7 @@ export default function ArticleDetail() {
           </div>
         )}
       </section>
+    </div>
     </div>
   );
 }
