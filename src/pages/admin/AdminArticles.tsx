@@ -8,7 +8,7 @@ interface Article {
   title: string;
   content: string;
   visibility: 'public' | 'private';
-  tags: string;
+  tags: string[];
   created_at: string;
   updated_at: string;
 }
@@ -65,7 +65,7 @@ export default function AdminArticles() {
     setTitle(article.title);
     setContent(article.content);
     setVisibility(article.visibility);
-    setTags(article.tags || '');
+    setTags(Array.isArray(article.tags) ? article.tags.join(', ') : (article.tags || ''));
     setCoverUrl((article as any).cover_url || '');
   }
 
