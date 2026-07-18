@@ -18,6 +18,74 @@ interface Tag {
   article_count: number;
 }
 
+function getCover(id: number): { bg: string; pattern: string } {
+  const palettes = [
+    ['#818cf8', '#c084fc'], ['#06b6d4', '#3b82f6'], ['#f59e0b', '#ef4444'],
+    ['#22c55e', '#06b6d4'], ['#ec4899', '#f97316'], ['#6366f1', '#a855f7'],
+  ]
+  const idx = id % palettes.length
+  return { bg: `linear-gradient(135deg, ${palettes[idx][0]}, ${palettes[idx][1]})`, pattern: getPattern(id) }
+}
+
+function getPattern(i: number): string {
+  const patterns = ['circle', 'wave', 'dots', 'grid', 'triangle']
+  return patterns[i % patterns.length]
+}
+
+function PatternSVG({ pattern }: { pattern: string }) {
+  switch (pattern) {
+    case 'circle':
+      return (
+        <svg width="100%" height="100%" className="absolute inset-0 opacity-20">
+          <circle cx="20%" cy="30%" r="12" fill="rgba(255,255,255,0.6)" />
+          <circle cx="75%" cy="60%" r="8" fill="rgba(255,255,255,0.4)" />
+          <circle cx="45%" cy="75%" r="6" fill="rgba(255,255,255,0.3)" />
+          <circle cx="85%" cy="20%" r="10" fill="rgba(255,255,255,0.5)" />
+        </svg>
+      );
+    case 'wave':
+      return (
+        <svg width="100%" height="100%" className="absolute inset-0 opacity-15" preserveAspectRatio="none">
+          <path d="M0,32 Q25,16 50,32 T100,32 L100,100 L0,100 Z" fill="rgba(255,255,255,0.5)" />
+          <path d="M0,64 Q25,48 50,64 T100,64 L100,100 L0,100 Z" fill="rgba(255,255,255,0.3)" />
+        </svg>
+      );
+    case 'dots':
+      return (
+        <svg width="100%" height="100%" className="absolute inset-0 opacity-20">
+          <defs>
+            <pattern id="dots-pattern" x="0" y="0" width="16" height="16" patternUnits="userSpaceOnUse">
+              <circle cx="4" cy="4" r="1.5" fill="rgba(255,255,255,0.6)" />
+              <circle cx="12" cy="12" r="1.5" fill="rgba(255,255,255,0.4)" />
+            </pattern>
+          </defs>
+          <rect width="100%" height="100%" fill="url(#dots-pattern)" />
+        </svg>
+      );
+    case 'grid':
+      return (
+        <svg width="100%" height="100%" className="absolute inset-0 opacity-15">
+          <defs>
+            <pattern id="grid-lines" width="20" height="20" patternUnits="userSpaceOnUse">
+              <path d="M 20 0 L 0 0 0 20" fill="none" stroke="rgba(255,255,255,0.4)" strokeWidth="0.5" />
+            </pattern>
+          </defs>
+          <rect width="100%" height="100%" fill="url(#grid-lines)" />
+        </svg>
+      );
+    case 'triangle':
+      return (
+        <svg width="100%" height="100%" className="absolute inset-0 opacity-20">
+          <polygon points="50,5 95,95 5,95" fill="none" stroke="rgba(255,255,255,0.5)" strokeWidth="1" />
+          <polygon points="50,15 85,85 15,85" fill="none" stroke="rgba(255,255,255,0.3)" strokeWidth="1" />
+          <polygon points="50,25 75,75 25,75" fill="none" stroke="rgba(255,255,255,0.2)" strokeWidth="1" />
+        </svg>
+      );
+    default:
+      return null;
+  }
+}
+
 export default function ArticleList() {
   const [searchParams, setSearchParams] = useSearchParams();
   const [articles, setArticles] = useState<Article[]>([]);
@@ -143,36 +211,44 @@ export default function ArticleList() {
       {!loading && !error && articles.length > 0 && (
         <>
           <div className="space-y-4">
-            {articles.map((article) => (
-              <Link
-                key={article.id}
-                to={`/articles/${article.id}`}
-                className="block p-6 bg-bg-secondary rounded-xl border border-bg-card hover:border-accent/50 transition-all duration-200"
-              >
-                <h3 className="text-lg font-semibold text-text-primary mb-2 hover:text-accent transition-colors">
-                  {article.title}
-                </h3>
-                <p className="text-text-secondary text-sm mb-3 leading-relaxed">
-                  {truncate(article.content, 150)}
-                </p>
-                <div className="flex items-center gap-4 text-sm text-text-secondary">
-                  <span>{new Date(article.created_at).toLocaleDateString()}</span>
-                  <span>{article.view_count} 次阅读</span>
-                </div>
-                {article.tags.length > 0 && (
-                  <div className="flex gap-2 flex-wrap mt-2">
-                    {article.tags.map((tag) => (
-                      <span
-                        key={tag}
-                        className="px-2 py-0.5 text-xs rounded-full bg-accent/20 text-accent"
-                      >
-                        {tag}
-                      </span>
-                    ))}
+            {articles.map((article) => {
+              const cover = getCover(article.id);
+              return (
+                <Link
+                  key={article.id}
+                  to={`/articles/${article.id}`}
+                  className="block bg-bg-card rounded-xl overflow-hidden border border-bg-card hover:border-accent/30 transition-all duration-200"
+                >
+                  <div style={{ background: cover.bg }} className="h-24 relative flex items-center justify-center overflow-hidden">
+                    <PatternSVG pattern={cover.pattern} />
                   </div>
-                )}
-              </Link>
-            ))}
+                  <div className="p-6">
+                    <h3 className="text-lg font-semibold text-text-primary mb-2 hover:text-accent transition-colors">
+                      {article.title}
+                    </h3>
+                    <p className="text-text-secondary text-sm mb-3 leading-relaxed">
+                      {truncate(article.content, 150)}
+                    </p>
+                    <div className="flex items-center gap-4 text-sm text-text-secondary">
+                      <span>{new Date(article.created_at).toLocaleDateString()}</span>
+                      <span>{article.view_count} 次阅读</span>
+                    </div>
+                    {article.tags.length > 0 && (
+                      <div className="flex gap-2 flex-wrap mt-2">
+                        {article.tags.map((tag) => (
+                          <span
+                            key={tag}
+                            className="px-2 py-0.5 text-xs rounded-full bg-accent/20 text-accent"
+                          >
+                            {tag}
+                          </span>
+                        ))}
+                      </div>
+                    )}
+                  </div>
+                </Link>
+              );
+            })}
           </div>
 
           {totalPages > 1 && (

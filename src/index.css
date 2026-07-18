@@ -1,13 +1,54 @@
 @import "tailwindcss";
-@custom-variant dark (&:where(.dark, .dark *));
 
 @theme {
-  --color-bg-primary: #0f172a;
-  --color-bg-secondary: #1e293b;
-  --color-bg-card: #334155;
-  --color-text-primary: #f1f5f9;
-  --color-text-secondary: #94a3b8;
-  --color-accent: #818cf8;
+  --color-bg-primary: var(--bg-primary);
+  --color-bg-secondary: var(--bg-secondary);
+  --color-bg-card: var(--bg-card);
+  --color-text-primary: var(--text-primary);
+  --color-text-secondary: var(--text-secondary);
+  --color-accent: var(--accent);
+}
+
+:root,
+html.dark {
+  --bg-primary: #0f172a;
+  --bg-secondary: #1e293b;
+  --bg-card: #334155;
+  --text-primary: #f1f5f9;
+  --text-secondary: #94a3b8;
+  --accent: #818cf8;
+}
+html.light {
+  --bg-primary: #f8fafc;
+  --bg-secondary: #f1f5f9;
+  --bg-card: #ffffff;
+  --text-primary: #0f172a;
+  --text-secondary: #475569;
+  --accent: #6366f1;
+}
+html.warm {
+  --bg-primary: #1c1917;
+  --bg-secondary: #292524;
+  --bg-card: #44403c;
+  --text-primary: #fef3c7;
+  --text-secondary: #d6d3d1;
+  --accent: #f59e0b;
+}
+html.nature {
+  --bg-primary: #0a1f0a;
+  --bg-secondary: #1a3a1a;
+  --bg-card: #2d5a2d;
+  --text-primary: #dcfce7;
+  --text-secondary: #86efac;
+  --accent: #22c55e;
+}
+html.ocean {
+  --bg-primary: #0c1929;
+  --bg-secondary: #1a2d4a;
+  --bg-card: #2a4365;
+  --text-primary: #e0f2fe;
+  --text-secondary: #7dd3fc;
+  --accent: #06b6d4;
 }
 
 html {
@@ -16,4 +57,12 @@ html {
 
 ::-webkit-scrollbar { width: 6px; }
 ::-webkit-scrollbar-track { background: transparent; }
-::-webkit-scrollbar-thumb { background: #475569; border-radius: 3px; }
+::-webkit-scrollbar-thumb { background: var(--text-secondary); border-radius: 3px; opacity: 0.5; }
+
+@keyframes fadeInUp {
+  from { opacity: 0; transform: translateY(16px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+.animate-fade-in {
+  animation: fadeInUp 0.4s ease-out;
+}

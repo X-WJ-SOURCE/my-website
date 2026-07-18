@@ -29,6 +29,74 @@ interface ReactionCount {
 
 const EMOJIS = ["❤️", "😂", "👍", "😮", "😢"];
 
+function getCover(id: number): { bg: string; pattern: string } {
+  const palettes = [
+    ['#818cf8', '#c084fc'], ['#06b6d4', '#3b82f6'], ['#f59e0b', '#ef4444'],
+    ['#22c55e', '#06b6d4'], ['#ec4899', '#f97316'], ['#6366f1', '#a855f7'],
+  ]
+  const idx = id % palettes.length
+  return { bg: `linear-gradient(135deg, ${palettes[idx][0]}, ${palettes[idx][1]})`, pattern: getPattern(id) }
+}
+
+function getPattern(i: number): string {
+  const patterns = ['circle', 'wave', 'dots', 'grid', 'triangle']
+  return patterns[i % patterns.length]
+}
+
+function PatternSVG({ pattern }: { pattern: string }) {
+  switch (pattern) {
+    case 'circle':
+      return (
+        <svg width="100%" height="100%" className="absolute inset-0 opacity-20">
+          <circle cx="20%" cy="30%" r="12" fill="rgba(255,255,255,0.6)" />
+          <circle cx="75%" cy="60%" r="8" fill="rgba(255,255,255,0.4)" />
+          <circle cx="45%" cy="75%" r="6" fill="rgba(255,255,255,0.3)" />
+          <circle cx="85%" cy="20%" r="10" fill="rgba(255,255,255,0.5)" />
+        </svg>
+      );
+    case 'wave':
+      return (
+        <svg width="100%" height="100%" className="absolute inset-0 opacity-15" preserveAspectRatio="none">
+          <path d="M0,32 Q25,16 50,32 T100,32 L100,100 L0,100 Z" fill="rgba(255,255,255,0.5)" />
+          <path d="M0,64 Q25,48 50,64 T100,64 L100,100 L0,100 Z" fill="rgba(255,255,255,0.3)" />
+        </svg>
+      );
+    case 'dots':
+      return (
+        <svg width="100%" height="100%" className="absolute inset-0 opacity-20">
+          <defs>
+            <pattern id="dots-pattern" x="0" y="0" width="16" height="16" patternUnits="userSpaceOnUse">
+              <circle cx="4" cy="4" r="1.5" fill="rgba(255,255,255,0.6)" />
+              <circle cx="12" cy="12" r="1.5" fill="rgba(255,255,255,0.4)" />
+            </pattern>
+          </defs>
+          <rect width="100%" height="100%" fill="url(#dots-pattern)" />
+        </svg>
+      );
+    case 'grid':
+      return (
+        <svg width="100%" height="100%" className="absolute inset-0 opacity-15">
+          <defs>
+            <pattern id="grid-lines" width="20" height="20" patternUnits="userSpaceOnUse">
+              <path d="M 20 0 L 0 0 0 20" fill="none" stroke="rgba(255,255,255,0.4)" strokeWidth="0.5" />
+            </pattern>
+          </defs>
+          <rect width="100%" height="100%" fill="url(#grid-lines)" />
+        </svg>
+      );
+    case 'triangle':
+      return (
+        <svg width="100%" height="100%" className="absolute inset-0 opacity-20">
+          <polygon points="50,5 95,95 5,95" fill="none" stroke="rgba(255,255,255,0.5)" strokeWidth="1" />
+          <polygon points="50,15 85,85 15,85" fill="none" stroke="rgba(255,255,255,0.3)" strokeWidth="1" />
+          <polygon points="50,25 75,75 25,75" fill="none" stroke="rgba(255,255,255,0.2)" strokeWidth="1" />
+        </svg>
+      );
+    default:
+      return null;
+  }
+}
+
 export default function ArticleDetail() {
   const { id } = useParams<{ id: string }>();
   const visitorId = getVisitorId();
@@ -198,17 +266,30 @@ export default function ArticleDetail() {
 
   if (!article) return null;
 
+  const cover = getCover(article.id);
+
   return (
     <div className="max-w-4xl mx-auto px-4 py-8">
-      <article>
-        <h1 className="text-3xl md:text-4xl font-bold text-text-primary mb-4">
-          {article.title}
-        </h1>
-
-        <div className="flex items-center gap-4 text-sm text-text-secondary mb-4">
-          <span>{new Date(article.created_at).toLocaleDateString()}</span>
-          <span>{article.view_count} 次阅读</span>
+      <div
+        style={{ background: cover.bg }}
+        className="relative rounded-xl overflow-hidden mb-6"
+      >
+        <div className="h-48 md:h-64 relative flex items-center justify-center">
+          <PatternSVG pattern={cover.pattern} />
+          <div className="absolute inset-0 bg-gradient-to-t from-black/40 to-transparent" />
+          <div className="absolute bottom-4 left-6 right-6">
+            <h1 className="text-2xl md:text-3xl font-bold text-white mb-2 drop-shadow-lg">
+              {article.title}
+            </h1>
+            <div className="flex items-center gap-4 text-sm text-white/80">
+              <span>{new Date(article.created_at).toLocaleDateString()}</span>
+              <span>{article.view_count} 次阅读</span>
+            </div>
+          </div>
         </div>
+      </div>
+
+      <article>
 
         {article.tags.length > 0 && (
           <div className="flex gap-2 flex-wrap mb-6">

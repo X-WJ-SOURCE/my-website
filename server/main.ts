@@ -70,13 +70,23 @@ app.route('/api/reactions', reactionsRouter)
 app.route('/api/timeline', timelineRouter)
 app.route('/api/admin', adminRouter)
 
+app.get('/api/stats', async (c) => {
+  const stats = {
+    articles: (await db().execute('SELECT COUNT(*) as count FROM articles WHERE visibility = ?', ['public'])).rows[0].count,
+    comments: (await db().execute('SELECT COUNT(*) as count FROM comments')).rows[0].count,
+    guestbook: (await db().execute('SELECT COUNT(*) as count FROM guestbook')).rows[0].count,
+    wall: (await db().execute('SELECT COUNT(*) as count FROM wall_posts')).rows[0].count,
+  }
+  return c.json(stats)
+})
+
 if (isProduction) {
   const distDir = path.join(__dirname, '..', 'dist')
   app.use('/*', serveStatic({ root: distDir }))
   app.get('*', serveStatic({ root: distDir, path: 'index.html' }))
 }
 
-import { initDb } from './db.js'
+import { initDb, db } from './db.js'
 import { serve } from '@hono/node-server'
 
 export default app
