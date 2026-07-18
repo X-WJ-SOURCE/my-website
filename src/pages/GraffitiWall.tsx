@@ -11,32 +11,23 @@ interface WallPost {
   edited_at: string | null;
 }
 
-const ACCENT_COLORS = [
-  "#f9a8d4",
-  "#c4b5fd",
-  "#a5f3fc",
-  "#fde68a",
-  "#fecdd3",
-  "#bfdbfe",
-  "#bbf7d0",
-  "#fed7aa",
-  "#e9d5ff",
-  "#d9f99d",
-];
-
-function getRandomInt(min: number, max: number) {
-  return Math.floor(Math.random() * (max - min + 1)) + min;
-}
-
 function getCardStyle(index: number) {
-  const colorIndex = index % ACCENT_COLORS.length;
-  const rotation = getRandomInt(-3, 3);
-  const hue = (index * 47) % 360;
+  const ACCENT_COLORS = [
+    '#f9a8d4', '#c4b5fd', '#a5f3fc', '#fde68a', '#fecdd3', 
+    '#bfdbfe', '#bbf7d0', '#fed7aa', '#e9d5ff', '#d9f99d',
+    '#fecaca', '#a7f3d0', '#c7d2fe', '#fbcfe8', '#fef08a',
+  ]
+  const colorIndex = index % ACCENT_COLORS.length
+  const rotation = -3 + (index * 7) % 6
+  const hue = index * 47 % 360
+  const styles = ['lined', 'grid', 'dotted', 'plain', 'taped', 'folded', 'polaroid', 'torn']
+  const paperStyle = styles[index % styles.length]
   return {
     accentColor: ACCENT_COLORS[colorIndex],
     rotation,
     bgHue: hue,
-  };
+    paperStyle,
+  }
 }
 
 export default function GraffitiWall() {
@@ -64,10 +55,6 @@ export default function GraffitiWall() {
   const [commentText, setCommentText] = useState<Record<number, string>>({});
   const [commentNick, setCommentNick] = useState<Record<number, string>>({});
   const [commentLoading, setCommentLoading] = useState(false);
-  const [drawing, setDrawing] = useState(false);
-  const [drawColor, setDrawColor] = useState('#818cf8');
-  const bgCanvasRef = useRef<HTMLCanvasElement>(null);
-  const [drawings, setDrawings] = useState<any[]>([]);
 
   const formRef = useRef<HTMLDivElement>(null);
   const limit = 6;
@@ -230,135 +217,8 @@ export default function GraffitiWall() {
     } catch {}
   }
 
-  const fetchDrawings = async () => {
-    try {
-      const data = await api.get('/wall-drawings') as any[]
-      setDrawings(data || [])
-    } catch {}
-  }
-
-  const renderDrawings = useCallback(() => {
-    const c = bgCanvasRef.current
-    if (!c) return
-    c.width = window.innerWidth
-    c.height = window.innerHeight
-    c.style.width = window.innerWidth + 'px'
-    c.style.height = window.innerHeight + 'px'
-    const ctx = c.getContext('2d')
-    if (!ctx) return
-    ctx.clearRect(0, 0, c.width, c.height)
-    drawings.forEach((d: any) => {
-      const points = JSON.parse(d.stroke_data) as { x: number; y: number }[]
-      if (!points.length) return
-      ctx.beginPath()
-      ctx.moveTo(points[0].x, points[0].y)
-      for (let i = 1; i < points.length; i++) ctx.lineTo(points[i].x, points[i].y)
-      ctx.strokeStyle = d.color; ctx.lineWidth = 3
-      ctx.lineCap = 'round'; ctx.lineJoin = 'round'
-      ctx.stroke()
-    })
-  }, [drawings])
-
-  useEffect(() => { fetchDrawings() }, [])
-
-
-  useEffect(() => { if (drawings.length) renderDrawings() }, [drawings, renderDrawings])
-
-  useEffect(() => {
-    if (!drawing) return
-    const c = bgCanvasRef.current
-    if (!c) return
-    c.width = window.innerWidth; c.height = window.innerHeight
-    c.style.width = '100vw'; c.style.height = '100vh'
-    c.style.pointerEvents = 'auto'
-    fetchDrawings()
-    return () => { if (c) c.style.pointerEvents = 'none' }
-  }, [drawing])
-
-  const isOnCard = (el: HTMLElement | null): boolean => {
-    while (el) {
-      if (el.classList.contains('break-inside-avoid')) return true
-      el = el.parentElement
-    }
-    return false
-  }
-
-  const handleBgDown = async (e: React.MouseEvent) => {
-    if (!drawing) return
-
-    if (isOnCard(e.target as HTMLElement)) return
-
-    if (drawColor === 'eraser') {
-      const px = e.clientX, py = e.clientY
-      let closest: any = null, minDist = 30
-      for (const d of drawings) {
-        const points = JSON.parse(d.stroke_data) as { x: number; y: number }[]
-        for (const p of points) {
-          const dist = Math.hypot(p.x - px, p.y - py)
-          if (dist < minDist) { minDist = dist; closest = d }
-        }
-      }
-      if (closest) {
-        await api.delete(`/wall-drawings/${closest.id}`)
-        fetchDrawings()
-      }
-      return
-    }
-
-    const c = bgCanvasRef.current
-    if (!c) return
-    const ctx = c.getContext('2d')
-    if (!ctx) return
-    const points: { x: number; y: number }[] = []
-    ctx.beginPath()
-    ctx.moveTo(e.clientX, e.clientY)
-    points.push({ x: e.clientX, y: e.clientY })
-    ctx.strokeStyle = drawColor; ctx.lineWidth = 3
-    ctx.lineCap = 'round'; ctx.lineJoin = 'round'
-
-    const onMove = (ev: MouseEvent) => {
-      ctx.lineTo(ev.clientX, ev.clientY)
-      ctx.stroke()
-      ctx.beginPath()
-      ctx.moveTo(ev.clientX, ev.clientY)
-      points.push({ x: ev.clientX, y: ev.clientY })
-    }
-    const onUp = async () => {
-      document.removeEventListener('mousemove', onMove)
-      document.removeEventListener('mouseup', onUp)
-      if (points.length > 1) {
-        await api.post('/wall-drawings', { stroke_data: points, color: drawColor })
-        fetchDrawings()
-      }
-    }
-    document.addEventListener('mousemove', onMove)
-    document.addEventListener('mouseup', onUp)
-  }
-
   return (
     <div className="max-w-7xl mx-auto px-4 py-8 relative">
-      <canvas ref={bgCanvasRef}
-        onMouseDown={handleBgDown}
-        className="fixed inset-0 z-20 pointer-events-none" style={{ cursor: drawing ? 'crosshair' : 'default' }} />
-
-      {drawing && (
-        <div className="fixed top-4 left-1/2 -translate-x-1/2 z-40 flex gap-2 bg-bg-card/95 backdrop-blur rounded-xl px-4 py-2 items-center flex-wrap">
-          {['#818cf8', '#f59e0b', '#ef4444', '#22c55e', '#ffffff', '#06b6d4', '#ec4899'].map(c => (
-            <button key={c} onClick={() => setDrawColor(c)}
-              className="w-6 h-6 rounded-full border-2 cursor-pointer transition-transform hover:scale-110"
-              style={{ backgroundColor: c, borderColor: drawColor === c ? '#fff' : 'rgba(255,255,255,0.3)' }} />
-          ))}
-          <button onClick={() => { setDrawColor('eraser') }}
-            className={`px-2 py-0.5 text-xs rounded cursor-pointer ${drawColor === 'eraser' ? 'bg-accent text-white' : 'bg-bg-secondary text-text-secondary'}`}>
-            🧹 擦除
-          </button>
-          <button onClick={() => setDrawing(false)}
-            className="px-3 py-1 text-xs rounded cursor-pointer bg-red-500 text-white font-bold hover:bg-red-600 transition-colors">
-            ✕ 退出涂鸦
-          </button>
-          <span className="text-xs text-text-secondary">按住拖动涂鸦 | 选🧹擦除后点击线条删除</span>
-        </div>
-      )}
       <h1 className="text-3xl font-bold text-text-primary mb-2">
         🎨 涂鸦墙
       </h1>
@@ -412,10 +272,6 @@ export default function GraffitiWall() {
             >
               {submitting ? "提交中..." : "贴上去"}
             </button>
-            <button type="button" onClick={() => setDrawing(!drawing)}
-              className={`px-4 py-2 rounded-lg text-sm cursor-pointer ${drawing ? 'bg-accent text-white' : 'bg-bg-card text-text-secondary hover:bg-bg-secondary'}`}>
-              🎨 涂鸦 {drawing ? '中...' : ''}
-            </button>
           </div>
         </form>
       </div>
@@ -455,16 +311,39 @@ export default function GraffitiWall() {
               return (
                 <div
                   key={post.id}
-                  className="break-inside-avoid rounded-xl p-4 border shadow-lg transition-transform hover:scale-[1.02] hover:z-10 relative"
+                  className={`break-inside-avoid rounded-[4px] p-4 border shadow-lg transition-transform hover:scale-[1.02] hover:z-10 relative ${style.paperStyle === 'polaroid' ? 'pb-8' : ''}`}
                   style={{
-                    backgroundColor: `hsl(${style.bgHue}, 30%, 15%)`,
+                    backgroundColor: `hsl(${style.bgHue}, 30%, ${style.paperStyle === 'polaroid' ? '20%' : '18%'})`,
                     borderColor: style.accentColor,
-                    borderWidth: 2,
-                    borderBottomWidth: 4,
+                    borderWidth: style.paperStyle === 'polaroid' ? 3 : 1.5,
+                    borderBottomWidth: style.paperStyle === 'polaroid' ? 10 : style.paperStyle === 'torn' ? 4 : 2,
                     transform: `rotate(${style.rotation}deg)`,
-                    boxShadow: `0 0 15px ${style.accentColor}20`,
+                    boxShadow: `2px 3px 10px rgba(0,0,0,0.3), 0 0 0 1px ${style.accentColor}20`,
                   }}
                 >
+                  {style.paperStyle === 'taped' && (
+                    <div className="absolute -top-2 left-1/2 -translate-x-1/2 w-12 h-3 rounded-sm opacity-70" style={{ backgroundColor: style.accentColor }} />
+                  )}
+                  {style.paperStyle === 'lined' && (
+                    <div className="absolute inset-x-3 inset-y-0 pointer-events-none" style={{
+                      backgroundImage: 'repeating-linear-gradient(transparent, transparent 23px, rgba(255,255,255,0.03) 23px, rgba(255,255,255,0.03) 24px)'
+                    }} />
+                  )}
+                  {style.paperStyle === 'grid' && (
+                    <div className="absolute inset-0 pointer-events-none opacity-[0.03]" style={{
+                      backgroundImage: 'linear-gradient(rgba(255,255,255,0.3) 1px, transparent 1px), linear-gradient(90deg, rgba(255,255,255,0.3) 1px, transparent 1px)',
+                      backgroundSize: '20px 20px'
+                    }} />
+                  )}
+                  {style.paperStyle === 'dotted' && (
+                    <div className="absolute inset-0 pointer-events-none opacity-[0.04]" style={{
+                      backgroundImage: 'radial-gradient(circle, rgba(255,255,255,0.5) 1px, transparent 1px)',
+                      backgroundSize: '16px 16px'
+                    }} />
+                  )}
+                  {style.paperStyle === 'folded' && (
+                    <div className="absolute bottom-0 right-0 w-0 h-0 border-l-[12px] border-l-transparent border-b-[12px] pointer-events-none" style={{ borderBottomColor: 'rgba(0,0,0,0.15)' }} />
+                  )}
                   <div className="flex items-center gap-2 mb-2">
                     <div
                       className="w-3 h-3 rounded-full"
