@@ -314,7 +314,8 @@ export default function AdminArticles() {
         </form>
 
         {previewDecor && decorImages.length > 0 && (
-          <div className="fixed inset-0 z-50 bg-black/95 flex items-center justify-center overflow-hidden" onClick={() => setPreviewDecor(false)}>
+          <div className="fixed inset-0 z-50 bg-black/95 flex items-center justify-center overflow-hidden"
+            onClick={(e) => { if (e.target === e.currentTarget) setPreviewDecor(false) }}>
             <div className="absolute top-3 right-3 z-10 flex gap-2">
               <button onClick={() => setPreviewDecor(false)} className="px-4 py-1.5 bg-accent text-white rounded-lg text-sm cursor-pointer font-bold">完成</button>
             </div>
