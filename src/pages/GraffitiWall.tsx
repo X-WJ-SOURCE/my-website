@@ -39,6 +39,84 @@ function getCardStyle(index: number) {
   };
 }
 
+function DrawingModal({ onClose, onSave }: { onClose: () => void; onSave: (blob: Blob) => void }) {
+  const canvasRef = useRef<HTMLCanvasElement>(null)
+  const [color, setColor] = useState('#818cf8')
+  const [hasContent, setHasContent] = useState(false)
+
+  useEffect(() => {
+    const c = canvasRef.current
+    if (!c) return
+    c.width = 600; c.height = 400
+    const ctx = c.getContext('2d')
+    if (!ctx) return
+    ctx.fillStyle = '#1e293b'
+    ctx.fillRect(0, 0, c.width, c.height)
+    ctx.lineCap = 'round'; ctx.lineJoin = 'round'
+  }, [])
+
+  const getPos = (e: React.MouseEvent) => {
+    const c = canvasRef.current
+    if (!c) return { x: 0, y: 0 }
+    const rect = c.getBoundingClientRect()
+    return { x: e.clientX - rect.left, y: e.clientY - rect.top }
+  }
+
+  const onDown = (e: React.MouseEvent) => {
+    const c = canvasRef.current
+    if (!c) return
+    const ctx = c.getContext('2d')
+    if (!ctx) return
+    const { x, y } = getPos(e)
+    ctx.beginPath()
+    ctx.moveTo(x, y)
+    ctx.strokeStyle = color; ctx.lineWidth = 3
+    setHasContent(true)
+  }
+
+  const onMove = (e: React.MouseEvent) => {
+    if (e.buttons !== 1) return
+    const c = canvasRef.current
+    if (!c) return
+    const ctx = c.getContext('2d')
+    if (!ctx) return
+    const { x, y } = getPos(e)
+    ctx.lineTo(x, y)
+    ctx.stroke()
+    ctx.beginPath()
+    ctx.moveTo(x, y)
+  }
+
+  const handleSave = () => {
+    const c = canvasRef.current
+    if (!c) return
+    c.toBlob((b) => { if (b) onSave(b) }, 'image/png')
+  }
+
+  const colors = ['#818cf8', '#f59e0b', '#ef4444', '#22c55e', '#ffffff', '#06b6d4']
+
+  return (
+    <div className="fixed inset-0 z-50 bg-black/80 flex items-center justify-center p-4" onClick={onClose}>
+      <div className="bg-bg-card rounded-2xl p-4" onClick={e => e.stopPropagation()}>
+        <div className="flex items-center justify-between mb-3">
+          <span className="text-sm font-medium">🎨 自由涂鸦</span>
+          <div className="flex gap-2 items-center">
+            {colors.map(c => (
+              <button key={c} onClick={() => setColor(c)}
+                className="w-5 h-5 rounded-full border-2 cursor-pointer"
+                style={{ backgroundColor: c, borderColor: c === color ? '#fff' : 'transparent' }} />
+            ))}
+            <button onClick={onClose} className="ml-2 text-text-secondary text-sm cursor-pointer">取消</button>
+            <button onClick={handleSave} className="px-3 py-1 bg-accent text-white rounded text-sm cursor-pointer">发布</button>
+          </div>
+        </div>
+        <canvas ref={canvasRef} onMouseDown={onDown} onMouseMove={onMove} className="rounded-lg cursor-crosshair" />
+        <p className="text-xs text-text-secondary mt-2">按住鼠标画出你想要的涂鸦</p>
+      </div>
+    </div>
+  )
+}
+
 export default function GraffitiWall() {
   const visitorId = getVisitorId();
 
@@ -64,6 +142,7 @@ export default function GraffitiWall() {
   const [commentText, setCommentText] = useState<Record<number, string>>({});
   const [commentNick, setCommentNick] = useState<Record<number, string>>({});
   const [commentLoading, setCommentLoading] = useState(false);
+  const [drawing, setDrawing] = useState(false);
 
   const formRef = useRef<HTMLDivElement>(null);
   const limit = 6;
@@ -226,6 +305,24 @@ export default function GraffitiWall() {
     } catch {}
   }
 
+  const handleDrawingSave = async (blob: Blob) => {
+    const fd = new FormData()
+    fd.append('file', blob, 'drawing.png')
+    try {
+      const result = await api('/upload', { method: 'POST', body: fd }) as { url: string }
+      await api.post('/wall', {
+        nickname: nickname.trim() || '涂鸦者',
+        image_url: result.url,
+        visitor_id: visitorId,
+      })
+      setDrawing(false)
+      setPage(1)
+      fetchPosts()
+    } catch (err) {
+      setSubmitError(err instanceof Error ? err.message : '发布失败')
+    }
+  }
+
   return (
     <div className="max-w-7xl mx-auto px-4 py-8">
       <h1 className="text-3xl font-bold text-text-primary mb-2">
@@ -274,13 +371,18 @@ export default function GraffitiWall() {
           {submitError && (
             <p className="text-red-400 text-sm mb-2">{submitError}</p>
           )}
-          <button
-            type="submit"
-            disabled={(!content.trim() && !images.length) || submitting}
-            className="px-4 py-2 bg-accent text-white rounded-lg text-sm hover:opacity-80 transition-opacity disabled:opacity-40 disabled:cursor-not-allowed cursor-pointer"
-          >
-            {submitting ? "提交中..." : "贴上去"}
-          </button>
+          <div className="flex gap-2">
+            <button type="submit"
+              disabled={(!content.trim() && !images.length) || submitting}
+              className="px-4 py-2 bg-accent text-white rounded-lg text-sm hover:opacity-80 transition-opacity disabled:opacity-40 disabled:cursor-not-allowed cursor-pointer"
+            >
+              {submitting ? "提交中..." : "贴上去"}
+            </button>
+            <button type="button" onClick={() => setDrawing(true)}
+              className="px-4 py-2 bg-bg-card text-text-secondary rounded-lg text-sm hover:bg-bg-secondary transition-colors cursor-pointer">
+              🎨 涂鸦
+            </button>
+          </div>
         </form>
       </div>
 
@@ -506,6 +608,8 @@ export default function GraffitiWall() {
           )}
         </>
       )}
+
+      {drawing && <DrawingModal onClose={() => setDrawing(false)} onSave={handleDrawingSave} />}
     </div>
   );
 }
