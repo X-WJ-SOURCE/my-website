@@ -20,12 +20,12 @@ wallRouter.get('/', async (c) => {
 })
 
 wallRouter.post('/', async (c) => {
-  const { nickname, content, image_url, visitor_id } = await c.req.json()
-  if (!content && !image_url) return c.json({ error: 'Content or image is required' }, 400)
+  const { nickname, content, image_url, visitor_id, images } = await c.req.json()
+  if (!content && !image_url && !images) return c.json({ error: 'Content or image is required' }, 400)
 
   const result = await db().execute({
-    sql: 'INSERT INTO wall_posts (nickname, content, image_url, visitor_id) VALUES (?, ?, ?, ?)',
-    args: [nickname || 'Anonymous', content || null, image_url || null, visitor_id || null]
+    sql: 'INSERT INTO wall_posts (nickname, content, image_url, visitor_id, images) VALUES (?, ?, ?, ?, ?)',
+    args: [nickname || 'Anonymous', content || null, image_url || null, visitor_id || null, images ? JSON.stringify(images) : null]
   })
   return c.json({ id: Number(result.lastInsertRowid), message: 'Posted to wall' }, 201)
 })
