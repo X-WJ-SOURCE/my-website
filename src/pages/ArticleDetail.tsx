@@ -120,6 +120,7 @@ export default function ArticleDetail() {
   const [commentContent, setCommentContent] = useState("");
   const [commentImages, setCommentImages] = useState<string[]>([]);
   const [uploadingComment, setUploadingComment] = useState(false);
+  const [danmakuOn, setDanmakuOn] = useState(false);
   const [commentSubmitting, setCommentSubmitting] = useState(false);
   const [commentError, setCommentError] = useState<string | null>(null);
 
@@ -329,6 +330,26 @@ export default function ArticleDetail() {
           <img src={article.cover_url} alt="" className="w-full h-full object-cover blur-2xl opacity-15 scale-110" />
         </div>
       )}
+
+      {danmakuOn && comments.length > 0 && (
+        <div className="fixed inset-0 z-20 pointer-events-none overflow-hidden">
+          {comments.map((c, i) => (
+            <div key={`dm-${c.id}-${i}`}
+              className="absolute whitespace-nowrap text-sm font-bold animate-danmaku"
+              style={{
+                top: `${10 + (i * 17) % 70}%`,
+                left: '100%',
+                animationDelay: `${(i * 3) % 15}s`,
+                animationDuration: `${8 + (i % 5)}s`,
+                color: ['#f9a8d4','#a5f3fc','#fde68a','#c4b5fd','#fecdd3','#bbf7d0','#fed7aa'][i % 7],
+                textShadow: '0 0 3px rgba(0,0,0,0.8)',
+              }}>
+              {c.nickname || '匿名'}：{c.content}
+            </div>
+          ))}
+        </div>
+      )}
+
       {(article as any).decor_images && (() => {
         try {
           const decors: { url: string; x: number; y: number; w?: number }[] = JSON.parse((article as any).decor_images)
@@ -432,9 +453,13 @@ export default function ArticleDetail() {
       </section>
 
       <section>
-        <h3 className="text-lg font-semibold text-text-primary mb-4">
-            评论
-        </h3>
+        <div className="flex items-center gap-3 mb-4">
+          <h3 className="text-lg font-semibold text-text-primary">评论</h3>
+          <button onClick={() => setDanmakuOn(!danmakuOn)}
+            className={`px-2 py-0.5 text-xs rounded cursor-pointer ${danmakuOn ? 'bg-accent text-white' : 'bg-bg-card text-text-secondary'}`}>
+            📺 弹幕 {danmakuOn ? '开' : '关'}
+          </button>
+        </div>
 
         <form
           onSubmit={handleCommentSubmit}

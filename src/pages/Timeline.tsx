@@ -9,6 +9,14 @@ interface TimelineArticle {
   visibility: string;
 }
 
+function getSeasonIcon(dateStr: string): string {
+  const month = parseInt(dateStr.split('-')[1]) || 1
+  if (month >= 3 && month <= 5) return '🌸'
+  if (month >= 6 && month <= 8) return '☀️'
+  if (month >= 9 && month <= 11) return '🍂'
+  return '❄️'
+}
+
 export default function Timeline() {
   const [articles, setArticles] = useState<TimelineArticle[]>([]);
   const [years, setYears] = useState<string[]>([]);
@@ -118,7 +126,7 @@ export default function Timeline() {
                       className="block bg-bg-secondary rounded-xl border border-bg-card p-4 hover:border-accent/50 transition-all duration-200"
                     >
                       <span className="text-xs text-accent font-mono block mb-1">
-                        {article.date}
+                        {getSeasonIcon(article.date)} {article.date}
                       </span>
                       <h3 className="text-text-primary font-medium hover:text-accent transition-colors text-sm">
                         {article.title}
