@@ -240,11 +240,10 @@ export default function GraffitiWall() {
   const renderDrawings = useCallback(() => {
     const c = bgCanvasRef.current
     if (!c) return
-    const h = Math.max(document.body.scrollHeight, window.innerHeight)
     c.width = window.innerWidth
-    c.height = h
+    c.height = window.innerHeight
     c.style.width = window.innerWidth + 'px'
-    c.style.height = h + 'px'
+    c.style.height = window.innerHeight + 'px'
     const ctx = c.getContext('2d')
     if (!ctx) return
     ctx.clearRect(0, 0, c.width, c.height)
