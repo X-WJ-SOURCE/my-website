@@ -46,6 +46,8 @@ export default function GraffitiWall() {
 
   const [nickname, setNickname] = useState("");
   const [content, setContent] = useState("");
+  const [imageUrl, setImageUrl] = useState("");
+  const [uploading, setUploading] = useState(false);
   const [submitting, setSubmitting] = useState(false);
   const [submitError, setSubmitError] = useState<string | null>(null);
 
@@ -77,16 +79,18 @@ export default function GraffitiWall() {
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!content.trim()) return;
+    if (!content.trim() && !imageUrl) return;
     setSubmitting(true);
     setSubmitError(null);
     try {
       await api.post("/wall", {
         nickname: nickname.trim() || undefined,
-        content: content.trim(),
+        content: content.trim() || null,
+        image_url: imageUrl || null,
       });
       setNickname("");
       setContent("");
+      setImageUrl("");
       setPage(1);
       fetchPosts();
     } catch (err) {
@@ -97,6 +101,22 @@ export default function GraffitiWall() {
       setSubmitting(false);
     }
   };
+
+  const handleImageUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0]
+    if (!file) return
+    setUploading(true)
+    try {
+      const fd = new FormData()
+      fd.append('file', file)
+      const result = await api('/upload', { method: 'POST', body: fd }) as { url: string }
+      setImageUrl(result.url)
+    } catch (err) {
+      setSubmitError(err instanceof Error ? err.message : '图片上传失败')
+    } finally {
+      setUploading(false)
+    }
+  }
 
   const loadMore = () => {
     if (page < totalPages) {
@@ -134,12 +154,24 @@ export default function GraffitiWall() {
             maxLength={500}
             className="w-full px-3 py-2 mb-3 bg-bg-primary border border-bg-card rounded-lg text-text-primary placeholder-text-secondary text-sm focus:outline-none focus:border-accent resize-none"
           />
+          <div className="flex items-center gap-3 mb-3">
+            <label className="px-3 py-2 bg-bg-primary border border-bg-card rounded-lg text-text-secondary text-sm cursor-pointer hover:border-accent transition-colors">
+              {uploading ? '上传中...' : '添加图片'}
+              <input type="file" accept="image/*" onChange={handleImageUpload} className="hidden" disabled={uploading} />
+            </label>
+            {imageUrl && (
+              <div className="flex items-center gap-2">
+                <img src={imageUrl} alt="" className="h-8 w-12 object-cover rounded" />
+                <button type="button" onClick={() => setImageUrl('')} className="text-xs text-red-400 hover:text-red-300">×</button>
+              </div>
+            )}
+          </div>
           {submitError && (
             <p className="text-red-400 text-sm mb-2">{submitError}</p>
           )}
           <button
             type="submit"
-            disabled={!content.trim() || submitting}
+            disabled={(!content.trim() && !imageUrl) || submitting}
             className="px-4 py-2 bg-accent text-white rounded-lg text-sm hover:opacity-80 transition-opacity disabled:opacity-40 disabled:cursor-not-allowed cursor-pointer"
           >
             {submitting ? "提交中..." : "贴上去"}
