@@ -60,7 +60,7 @@ export default function GraffitiWall() {
   const [editSubmitting, setEditSubmitting] = useState(false);
 
   const formRef = useRef<HTMLDivElement>(null);
-  const limit = 12;
+  const limit = 6;
   const totalPages = Math.ceil(total / limit);
 
   const fetchPosts = useCallback(() => {
