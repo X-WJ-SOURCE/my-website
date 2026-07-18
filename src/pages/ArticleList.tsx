@@ -1,6 +1,6 @@
 import { useState, useEffect } from "react";
 import { Link, useSearchParams } from "react-router-dom";
-import { api } from "../lib/api";
+import { api, formatTime } from "../lib/api";
 
 interface Article {
   id: number;
@@ -235,7 +235,7 @@ export default function ArticleList() {
                       {truncate(article.content, 150)}
                     </p>
                     <div className="flex items-center gap-4 text-sm text-text-secondary">
-                      <span>{new Date(article.created_at).toLocaleDateString()}</span>
+                      <span>{formatTime(article.created_at)}</span>
                       <span>{article.view_count} 次阅读</span>
                     </div>
                     {article.tags.length > 0 && (

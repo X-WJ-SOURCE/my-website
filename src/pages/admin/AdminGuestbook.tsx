@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { api } from '../../lib/api';
+import { api, formatTime } from '../../lib/api';
 import { useAdminAuth } from '../../hooks/useAdminAuth';
 
 interface GuestbookEntry {
@@ -79,7 +79,7 @@ export default function AdminGuestbook() {
                   {e.content}
                 </p>
                 <p className="text-xs text-text-secondary">
-                  {new Date(e.created_at).toLocaleString()}
+                  {formatTime(e.created_at)}
                 </p>
               </div>
               <button

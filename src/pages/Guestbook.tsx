@@ -1,5 +1,5 @@
 import { useState, useEffect, useCallback } from "react";
-import { api, getVisitorId } from "../lib/api";
+import { api, formatTime, getVisitorId } from "../lib/api";
 
 interface GuestbookEntry {
   id: number;
@@ -9,12 +9,6 @@ interface GuestbookEntry {
   created_at: string;
   visitor_id: string;
   edited_at: string | null;
-}
-
-function formatEditedAt(iso: string): string {
-  const d = new Date(iso);
-  const pad = (n: number) => String(n).padStart(2, "0");
-  return `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())} ${pad(d.getHours())}:${pad(d.getMinutes())}:${pad(d.getSeconds())}`;
 }
 
 export default function Guestbook() {
@@ -206,7 +200,7 @@ export default function Guestbook() {
                     {entry.nickname || "匿名"}
                   </span>
                   <span className="text-xs text-text-secondary">
-                    {new Date(entry.created_at).toLocaleString('zh-CN')}
+                    {formatTime(entry.created_at)}
                   </span>
                   {entry.visitor_id === visitorId && (
                     <div className="flex gap-2 ml-auto">
@@ -257,7 +251,7 @@ export default function Guestbook() {
                     </p>
                     {entry.edited_at && (
                       <p className="text-xs text-text-secondary mt-1">
-                        最后编辑于 {formatEditedAt(entry.edited_at)}
+                        最后编辑于 {formatTime(entry.edited_at)}
                       </p>
                     )}
                   </>

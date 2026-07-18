@@ -1,6 +1,6 @@
 import { useState, useEffect, useRef } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { api } from '../../lib/api';
+import { api, formatTime } from '../../lib/api';
 import { useAdminAuth } from '../../hooks/useAdminAuth';
 
 interface Article {
@@ -398,8 +398,8 @@ export default function AdminArticles() {
                   </span>
                 </div>
                 <p className="text-xs text-text-secondary">
-                  {new Date(a.created_at).toLocaleDateString()} &middot; 更新于{' '}
-                  {new Date(a.updated_at).toLocaleDateString()}
+                  {formatTime(a.created_at)} &middot; 更新于{' '}
+                  {formatTime(a.updated_at)}
                 </p>
               </div>
               <div className="flex gap-2 shrink-0">

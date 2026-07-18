@@ -1,5 +1,11 @@
 import { v4 as uuidv4 } from 'uuid';
 
+export function formatTime(dateStr: string): string {
+  if (!dateStr) return ''
+  const d = new Date(dateStr.includes('T') || dateStr.includes('Z') ? dateStr : dateStr + 'Z')
+  return d.toLocaleString('zh-CN', { timeZone: 'Asia/Shanghai', hour12: false })
+}
+
 const TOKEN_KEY = 'token';
 
 export function getToken(): string | null {

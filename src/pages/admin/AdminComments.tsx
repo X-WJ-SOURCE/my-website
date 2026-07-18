@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { api } from '../../lib/api';
+import { api, formatTime } from '../../lib/api';
 import { useAdminAuth } from '../../hooks/useAdminAuth';
 
 interface Comment {
@@ -82,7 +82,7 @@ export default function AdminComments() {
                 </div>
                 <p className="text-sm text-text-secondary mb-1">{c.content}</p>
                 <p className="text-xs text-text-secondary">
-                  {new Date(c.created_at).toLocaleString()}
+                  {formatTime(c.created_at)}
                 </p>
               </div>
               <button

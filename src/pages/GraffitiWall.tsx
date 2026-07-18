@@ -1,5 +1,5 @@
 import { useState, useEffect, useCallback, useRef } from "react";
-import { api, getVisitorId } from "../lib/api";
+import { api, formatTime, getVisitorId } from "../lib/api";
 
 interface WallPost {
   id: number;
@@ -9,12 +9,6 @@ interface WallPost {
   created_at: string;
   visitor_id: string;
   edited_at: string | null;
-}
-
-function formatEditedAt(iso: string): string {
-  const d = new Date(iso);
-  const pad = (n: number) => String(n).padStart(2, "0");
-  return `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())} ${pad(d.getHours())}:${pad(d.getMinutes())}:${pad(d.getSeconds())}`;
 }
 
 const ACCENT_COLORS = [
@@ -340,7 +334,7 @@ export default function GraffitiWall() {
                       )}
                       {post.edited_at && (
                         <p className="text-xs text-text-secondary mt-0 mb-2">
-                          最后编辑于 {formatEditedAt(post.edited_at)}
+                          最后编辑于 {formatTime(post.edited_at)}
                         </p>
                       )}
                     </>
@@ -356,7 +350,7 @@ export default function GraffitiWall() {
                     className="text-xs mt-2"
                     style={{ color: `${style.accentColor}aa` }}
                   >
-                    {new Date(post.created_at).toLocaleString('zh-CN')}
+                    {formatTime(post.created_at)}
                   </p>
                 </div>
               );

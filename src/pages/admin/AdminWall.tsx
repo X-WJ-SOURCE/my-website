@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { api } from '../../lib/api';
+import { api, formatTime } from '../../lib/api';
 import { useAdminAuth } from '../../hooks/useAdminAuth';
 
 interface WallPost {
@@ -79,7 +79,7 @@ export default function AdminWall() {
                   {p.content}
                 </p>
                 <p className="text-xs text-text-secondary">
-                  {new Date(p.created_at).toLocaleString()}
+                  {formatTime(p.created_at)}
                 </p>
               </div>
               <button

@@ -1,6 +1,6 @@
 import { useState, useEffect } from "react";
 import { Link } from "react-router-dom";
-import { api } from "../lib/api";
+import { api, formatTime } from "../lib/api";
 
 interface Article {
   id: number;
@@ -207,7 +207,7 @@ export default function Home() {
                       </h3>
                     </Link>
                     <div className="flex items-center gap-3 text-xs text-text-secondary mt-2">
-                      <span>{new Date(article.created_at).toLocaleDateString()}</span>
+                      <span>{formatTime(article.created_at)}</span>
                       <span>{article.view_count} 阅读</span>
                     </div>
                     {article.tags.length > 0 && (

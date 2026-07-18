@@ -1,6 +1,6 @@
 import { useState, useEffect, useCallback } from "react";
 import { useParams } from "react-router-dom";
-import { api, getVisitorId } from "../lib/api";
+import { api, formatTime, getVisitorId } from "../lib/api";
 import Markdown from "../components/Markdown";
 
 interface Article {
@@ -23,12 +23,6 @@ interface Comment {
   created_at: string;
   visitor_id: string;
   edited_at: string | null;
-}
-
-function formatEditedAt(iso: string): string {
-  const d = new Date(iso);
-  const pad = (n: number) => String(n).padStart(2, "0");
-  return `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())} ${pad(d.getHours())}:${pad(d.getMinutes())}:${pad(d.getSeconds())}`;
 }
 
 interface ReactionCount {
@@ -356,7 +350,7 @@ export default function ArticleDetail() {
                 {article.title}
               </h1>
               <div className="flex items-center gap-4 text-sm text-white/80">
-                <span>{new Date(article.created_at).toLocaleDateString()}</span>
+                <span>{formatTime(article.created_at)}</span>
                 <span>{article.view_count} 次阅读</span>
               </div>
             </div>
@@ -374,7 +368,7 @@ export default function ArticleDetail() {
                   {article.title}
                 </h1>
                 <div className="flex items-center gap-4 text-sm text-white/80">
-                <span>{new Date(article.created_at).toLocaleString('zh-CN')}</span>
+                <span>{formatTime(article.created_at)}</span>
                   <span>{article.view_count} 次阅读</span>
                 </div>
               </div>
@@ -494,7 +488,7 @@ export default function ArticleDetail() {
                     {comment.nickname || "匿名"}
                   </span>
                   <span className="text-xs text-text-secondary">
-                    {new Date(comment.created_at).toLocaleString('zh-CN')}
+                    {formatTime(comment.created_at)}
                   </span>
                   {comment.visitor_id === visitorId && (
                     <div className="flex gap-2 ml-auto">
@@ -545,7 +539,7 @@ export default function ArticleDetail() {
                     </p>
                     {comment.edited_at && (
                       <p className="text-xs text-text-secondary mt-1">
-                        最后编辑于 {formatEditedAt(comment.edited_at)}
+                        最后编辑于 {formatTime(comment.edited_at)}
                       </p>
                     )}
                   </>

@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react';
 import { useParams } from 'react-router-dom';
-import { api, getToken } from '../lib/api';
+import { api, formatTime, getToken } from '../lib/api';
 
 interface Message {
   id: number;
@@ -106,7 +106,7 @@ export default function MessageThread() {
                   {msg.is_admin ? '站长' : (msg.nickname || '匿名')}
                 </span>
                 <span className="text-xs opacity-50">
-                  {new Date(msg.created_at).toLocaleString()}
+                  {formatTime(msg.created_at)}
                 </span>
               </div>
               <p className="text-sm whitespace-pre-wrap break-words">{msg.content}</p>

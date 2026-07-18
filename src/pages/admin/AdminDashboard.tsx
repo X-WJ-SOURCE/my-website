@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
-import { api } from '../../lib/api';
+import { api, formatTime } from '../../lib/api';
 import { useAdminAuth } from '../../hooks/useAdminAuth';
 
 interface Stats {
@@ -127,7 +127,7 @@ export default function AdminDashboard() {
                   </p>
                 </div>
                 <span className="text-xs text-text-secondary ml-4 shrink-0">
-                  {new Date(thread.created_at).toLocaleDateString()}
+                  {formatTime(thread.created_at)}
                 </span>
               </Link>
             ))}

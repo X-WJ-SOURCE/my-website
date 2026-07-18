@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
-import { api } from '../../lib/api';
+import { api, formatTime } from '../../lib/api';
 import { useAdminAuth } from '../../hooks/useAdminAuth';
 
 interface Thread {
@@ -82,7 +82,7 @@ export default function AdminMessages() {
                   {t.content}
                 </p>
                 <p className="text-xs text-text-secondary mt-1">
-                  {new Date(t.created_at).toLocaleString()}
+                  {formatTime(t.created_at)}
                 </p>
               </Link>
               <button
