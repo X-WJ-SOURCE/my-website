@@ -26,7 +26,9 @@ export default function AdminArticles() {
   const [content, setContent] = useState('');
   const [visibility, setVisibility] = useState<'public' | 'private'>('public');
   const [tags, setTags] = useState('');
+  const [coverUrl, setCoverUrl] = useState('');
   const [saving, setSaving] = useState(false);
+  const [uploading, setUploading] = useState(false);
 
   useEffect(() => {
     if (!isAuthenticated) {
@@ -54,6 +56,7 @@ export default function AdminArticles() {
     setContent('');
     setVisibility('public');
     setTags('');
+    setCoverUrl('');
   }
 
   function startEdit(article: Article) {
@@ -63,6 +66,7 @@ export default function AdminArticles() {
     setContent(article.content);
     setVisibility(article.visibility);
     setTags(article.tags || '');
+    setCoverUrl((article as any).cover_url || '');
   }
 
   function cancelEdit() {
@@ -77,7 +81,7 @@ export default function AdminArticles() {
     setSaving(true);
     setError('');
     try {
-      const payload = {
+      const payload: any = {
         title: title.trim(),
         content: content.trim(),
         visibility,
@@ -85,6 +89,7 @@ export default function AdminArticles() {
           .split(',')
           .map((t) => t.trim())
           .filter(Boolean),
+        cover_url: coverUrl || null,
       };
       if (editId) {
         await api.put(`/articles/${editId}`, payload);
@@ -97,6 +102,22 @@ export default function AdminArticles() {
       setError(err instanceof Error ? err.message : '保存失败');
     } finally {
       setSaving(false);
+    }
+  }
+
+  async function handleCoverUpload(e: React.ChangeEvent<HTMLInputElement>) {
+    const file = e.target.files?.[0]
+    if (!file) return
+    setUploading(true)
+    try {
+      const formData = new FormData()
+      formData.append('file', file)
+      const result = await api('/upload', { method: 'POST', body: formData }) as { url: string }
+      setCoverUrl(result.url)
+    } catch (err) {
+      setError(err instanceof Error ? err.message : '封面上传失败')
+    } finally {
+      setUploading(false)
     }
   }
 
@@ -174,6 +195,24 @@ export default function AdminArticles() {
                 className="flex-1 px-4 py-3 rounded-lg bg-bg-secondary text-text-primary border border-bg-card focus:border-accent outline-none placeholder:text-text-secondary"
               />
             </div>
+            <div>
+              <label className="block text-sm text-text-secondary mb-2">封面图</label>
+              <div className="flex items-center gap-3">
+                <label className="px-4 py-2 rounded-lg bg-bg-secondary text-text-secondary border border-bg-card hover:border-accent cursor-pointer text-sm transition-colors">
+                  {uploading ? '上传中...' : '选择图片'}
+                  <input type="file" accept="image/*" onChange={handleCoverUpload} className="hidden" disabled={uploading} />
+                </label>
+                {coverUrl && (
+                  <div className="flex items-center gap-2">
+                    <img src={coverUrl} alt="" className="h-10 w-16 object-cover rounded" />
+                    <button type="button" onClick={() => setCoverUrl('')} className="text-xs text-red-400 hover:text-red-300">清除</button>
+                  </div>
+                )}
+              </div>
+            </div>
+            <div className="flex gap-3">
+
+
             <div className="flex gap-3">
               <button
                 type="submit"

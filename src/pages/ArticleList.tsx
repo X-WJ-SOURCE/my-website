@@ -10,6 +10,7 @@ interface Article {
   created_at: string;
   tags: string[];
   view_count: number;
+  cover_url: string | null;
 }
 
 interface Tag {
@@ -219,9 +220,13 @@ export default function ArticleList() {
                   to={`/articles/${article.id}`}
                   className="block bg-bg-card rounded-xl overflow-hidden border border-bg-card hover:border-accent/30 transition-all duration-200"
                 >
-                  <div style={{ background: cover.bg }} className="h-24 relative flex items-center justify-center overflow-hidden">
-                    <PatternSVG pattern={cover.pattern} />
-                  </div>
+                  {article.cover_url ? (
+                    <img src={article.cover_url} alt="" className="h-24 w-full object-cover" />
+                  ) : (
+                    <div style={{ background: cover.bg }} className="h-24 relative flex items-center justify-center overflow-hidden">
+                      <PatternSVG pattern={cover.pattern} />
+                    </div>
+                  )}
                   <div className="p-6">
                     <h3 className="text-lg font-semibold text-text-primary mb-2 hover:text-accent transition-colors">
                       {article.title}

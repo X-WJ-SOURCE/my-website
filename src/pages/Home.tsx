@@ -10,6 +10,7 @@ interface Article {
   created_at: string;
   tags: string[];
   view_count: number;
+  cover_url: string | null;
 }
 
 interface Stats {
@@ -191,9 +192,13 @@ export default function Home() {
                   className="bg-bg-card rounded-xl overflow-hidden border border-bg-card hover:border-accent/30 transition-colors"
                 >
                   <Link to={`/articles/${article.id}`}>
-                    <div style={{ background: cover.bg }} className="h-32 relative flex items-center justify-center overflow-hidden">
-                      <PatternSVG pattern={cover.pattern} />
-                    </div>
+                    {article.cover_url ? (
+                      <img src={article.cover_url} alt="" className="h-32 w-full object-cover" />
+                    ) : (
+                      <div style={{ background: cover.bg }} className="h-32 relative flex items-center justify-center overflow-hidden">
+                        <PatternSVG pattern={cover.pattern} />
+                      </div>
+                    )}
                   </Link>
                   <div className="p-4">
                     <Link to={`/articles/${article.id}`}>

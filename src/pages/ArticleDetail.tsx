@@ -12,6 +12,7 @@ interface Article {
   updated_at: string;
   tags: string[];
   view_count: number;
+  cover_url: string | null;
 }
 
 interface Comment {
@@ -270,23 +271,45 @@ export default function ArticleDetail() {
 
   return (
     <div className="max-w-4xl mx-auto px-4 py-8">
-      <div
-        style={{ background: cover.bg }}
-        className="relative rounded-xl overflow-hidden mb-6"
-      >
-        <div className="h-48 md:h-64 relative flex items-center justify-center">
-          <PatternSVG pattern={cover.pattern} />
-          <div className="absolute inset-0 bg-gradient-to-t from-black/40 to-transparent" />
-          <div className="absolute bottom-4 left-6 right-6">
-            <h1 className="text-2xl md:text-3xl font-bold text-white mb-2 drop-shadow-lg">
-              {article.title}
-            </h1>
-            <div className="flex items-center gap-4 text-sm text-white/80">
-              <span>{new Date(article.created_at).toLocaleDateString()}</span>
-              <span>{article.view_count} 次阅读</span>
+      <div className="relative rounded-xl overflow-hidden mb-6">
+        {article.cover_url ? (
+          <div className="relative max-h-80">
+            <img
+              src={article.cover_url}
+              alt=""
+              className="w-full max-h-80 object-cover"
+            />
+            <div className="absolute inset-0 bg-gradient-to-t from-black/50 to-transparent" />
+            <div className="absolute bottom-4 left-6 right-6">
+              <h1 className="text-2xl md:text-3xl font-bold text-white mb-2 drop-shadow-lg">
+                {article.title}
+              </h1>
+              <div className="flex items-center gap-4 text-sm text-white/80">
+                <span>{new Date(article.created_at).toLocaleDateString()}</span>
+                <span>{article.view_count} 次阅读</span>
+              </div>
             </div>
           </div>
-        </div>
+        ) : (
+          <div
+            style={{ background: cover.bg }}
+            className="relative"
+          >
+            <div className="h-48 md:h-64 relative flex items-center justify-center">
+              <PatternSVG pattern={cover.pattern} />
+              <div className="absolute inset-0 bg-gradient-to-t from-black/40 to-transparent" />
+              <div className="absolute bottom-4 left-6 right-6">
+                <h1 className="text-2xl md:text-3xl font-bold text-white mb-2 drop-shadow-lg">
+                  {article.title}
+                </h1>
+                <div className="flex items-center gap-4 text-sm text-white/80">
+                  <span>{new Date(article.created_at).toLocaleDateString()}</span>
+                  <span>{article.view_count} 次阅读</span>
+                </div>
+              </div>
+            </div>
+          </div>
+        )}
       </div>
 
       <article>

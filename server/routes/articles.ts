@@ -101,14 +101,14 @@ articlesRouter.get('/:id', async (c) => {
 })
 
 articlesRouter.post('/', authMiddleware, async (c) => {
-  const { title, content, visibility, tags } = await c.req.json()
+  const { title, content, visibility, tags, cover_url } = await c.req.json()
 
   if (!title || !content) {
     return c.json({ error: 'Title and content are required' }, 400)
   }
   const result = await db().execute({
-    sql: 'INSERT INTO articles (title, content, visibility) VALUES (?, ?, ?)',
-    args: [title, content, visibility || 'public']
+    sql: 'INSERT INTO articles (title, content, visibility, cover_url) VALUES (?, ?, ?, ?)',
+    args: [title, content, visibility || 'public', cover_url || null]
   })
 
   const articleId = Number(result.lastInsertRowid)
@@ -138,7 +138,7 @@ articlesRouter.post('/', authMiddleware, async (c) => {
 
 articlesRouter.put('/:id', authMiddleware, async (c) => {
   const id = c.req.param('id')
-  const { title, content, visibility, tags } = await c.req.json()
+  const { title, content, visibility, tags, cover_url } = await c.req.json()
 
   const existing = (await db().execute({ sql: 'SELECT id FROM articles WHERE id = ?', args: [id] })).rows[0]
   if (!existing) {
@@ -146,8 +146,8 @@ articlesRouter.put('/:id', authMiddleware, async (c) => {
   }
 
   await db().execute({
-    sql: "UPDATE articles SET title = ?, content = ?, visibility = ?, updated_at = datetime('now') WHERE id = ?",
-    args: [title, content, visibility, id]
+    sql: "UPDATE articles SET title = ?, content = ?, visibility = ?, cover_url = ?, updated_at = datetime('now') WHERE id = ?",
+    args: [title, content, visibility, cover_url || null, id]
   })
 
   if (tags && Array.isArray(tags)) {
