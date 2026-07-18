@@ -314,29 +314,35 @@ export default function AdminArticles() {
         </form>
 
         {previewDecor && decorImages.length > 0 && (
-          <div className="fixed inset-0 z-50 bg-black/80 flex items-center justify-center" onClick={() => setPreviewDecor(false)}>
+          <div className="fixed inset-0 z-50 bg-black/90 flex items-center justify-center" onClick={() => setPreviewDecor(false)}>
             <div className="relative w-[92vw] h-[88vh] bg-bg-primary rounded-2xl border border-bg-card overflow-hidden" onClick={e => e.stopPropagation()}>
-              <div className="absolute top-3 left-3 z-10 text-sm text-text-secondary">拖动图片调位置，拖右下角调大小</div>
-              <div className="absolute top-3 right-3 z-10">
-                <button onClick={() => setPreviewDecor(false)} className="px-3 py-1 bg-bg-card text-text-secondary rounded-lg text-sm hover:bg-bg-secondary cursor-pointer">关闭 ×</button>
+              <div className="absolute top-3 left-3 z-10 text-sm text-text-secondary">拖动图片调位置 | 拖右下角 ◧ 调大小</div>
+              <div className="absolute top-3 right-3 z-10 flex gap-2">
+                <button onClick={() => setPreviewDecor(false)} className="px-3 py-1 bg-accent text-white rounded-lg text-sm cursor-pointer">完成</button>
               </div>
-              <div className="absolute inset-0 flex items-center justify-center pointer-events-none">
-                <div className="w-[60%] h-[70%] border-2 border-dashed border-accent/20 rounded-xl flex items-center justify-center">
-                  <span className="text-text-secondary text-sm opacity-50">文章区域</span>
+
+              <div className="absolute inset-[8%_15%] border-2 border-dashed border-accent/30 rounded-xl p-6 overflow-auto pointer-events-none">
+                <h2 className="text-lg font-bold text-text-primary mb-2">{title || '文章标题'}</h2>
+                <div className="flex gap-2 mb-3">
+                  {tags.split(',').filter(Boolean).map((t, i) => (
+                    <span key={i} className="px-2 py-0.5 text-xs rounded-full bg-accent/20 text-accent">{t.trim()}</span>
+                  ))}
                 </div>
+                <p className="text-sm text-text-secondary whitespace-pre-wrap line-clamp-6">{content || '文章内容预览...'}</p>
               </div>
+
               {decorImages.map((img, i) => (
                 <div key={i} className="absolute group" style={{ left: `${img.x}%`, top: `${img.y}%`, transform: 'translate(-50%, -50%)', width: img.w }}>
-                  <img src={img.url} alt="" className="w-full object-cover rounded-lg shadow-2xl select-none pointer-events-none" />
-                  <div className="absolute -inset-2 cursor-move rounded-lg border-2 border-accent/30 group-hover:border-accent transition-colors"
+                  <img src={img.url} alt="" className="w-full object-cover rounded-lg shadow-2xl pointer-events-none" draggable={false} />
+                  <div className="absolute -inset-1 cursor-move rounded-lg border border-accent/20 group-hover:border-accent transition-colors"
                     onMouseDown={(e) => {
                       e.preventDefault()
+                      const container = (e.target as HTMLElement).closest('.relative')?.parentElement?.getBoundingClientRect()
+                      if (!container) return
                       const sx = e.clientX, sy = e.clientY, ox = img.x, oy = img.y
                       const move = (ev: MouseEvent) => {
-                        const rect = e.currentTarget?.parentElement?.parentElement?.getBoundingClientRect()
-                        if (!rect) return
-                        const dx = ((ev.clientX - sx) / rect.width) * 100
-                        const dy = ((ev.clientY - sy) / rect.height) * 100
+                        const dx = (((ev.clientX - sx) / container.width) * 100)
+                        const dy = (((ev.clientY - sy) / container.height) * 100)
                         setDecorImages(prev => prev.map((d, j) => j === i ? { ...d, x: Math.max(0, Math.min(100, ox + dx)), y: Math.max(0, Math.min(100, oy + dy)) } : d))
                       }
                       const up = () => { document.removeEventListener('mousemove', move); document.removeEventListener('mouseup', up) }
@@ -347,12 +353,14 @@ export default function AdminArticles() {
                       e.preventDefault(); e.stopPropagation()
                       const sx = e.clientX, ow = img.w
                       const move = (ev: MouseEvent) => {
-                        const nw = Math.max(60, Math.min(400, ow + (ev.clientX - sx)))
-                        setDecorImages(prev => prev.map((d, j) => j === i ? { ...d, w: nw } : d))
+                        setDecorImages(prev => prev.map((d, j) => j === i ? { ...d, w: Math.max(40, Math.min(400, ow + (ev.clientX - sx))) } : d))
                       }
                       const up = () => { document.removeEventListener('mousemove', move); document.removeEventListener('mouseup', up) }
                       document.addEventListener('mousemove', move); document.addEventListener('mouseup', up)
                     }} />
+                  <div className="absolute -top-5 left-1/2 -translate-x-1/2 text-[10px] text-text-secondary bg-bg-card px-1.5 rounded opacity-0 group-hover:opacity-100 whitespace-nowrap">
+                    {Math.round(img.x)}%,{Math.round(img.y)}% | {img.w}px
+                  </div>
                 </div>
               ))}
             </div>
