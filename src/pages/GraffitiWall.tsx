@@ -65,6 +65,11 @@ export default function GraffitiWall() {
   const [commentNick, setCommentNick] = useState<Record<number, string>>({});
   const [commentLoading, setCommentLoading] = useState(false);
 
+  const [drawing, setDrawing] = useState(false);
+  const [drawColor, setDrawColor] = useState('#818cf8');
+  const canvasRef = useRef<HTMLCanvasElement>(null);
+  const ctxRef = useRef<CanvasRenderingContext2D | null>(null);
+
   const formRef = useRef<HTMLDivElement>(null);
   const limit = 6;
   const totalPages = Math.ceil(total / limit);
@@ -232,7 +237,7 @@ export default function GraffitiWall() {
         🎨 涂鸦墙
       </h1>
       <p className="text-text-secondary text-sm mb-6">
-        留下你的印记！写点好玩的。
+        写文字、贴图片、画涂鸦，留下你的印记！
       </p>
 
       <div ref={formRef} className="max-w-xl mb-8">
@@ -274,13 +279,19 @@ export default function GraffitiWall() {
           {submitError && (
             <p className="text-red-400 text-sm mb-2">{submitError}</p>
           )}
-          <button
-            type="submit"
-            disabled={(!content.trim() && !images.length) || submitting}
-            className="px-4 py-2 bg-accent text-white rounded-lg text-sm hover:opacity-80 transition-opacity disabled:opacity-40 disabled:cursor-not-allowed cursor-pointer"
-          >
-            {submitting ? "提交中..." : "贴上去"}
-          </button>
+          <div className="flex gap-2">
+            <button
+              type="submit"
+              disabled={(!content.trim() && !images.length) || submitting}
+              className="px-4 py-2 bg-accent text-white rounded-lg text-sm hover:opacity-80 transition-opacity disabled:opacity-40 disabled:cursor-not-allowed cursor-pointer"
+            >
+              {submitting ? "提交中..." : "贴上去"}
+            </button>
+            <button type="button" onClick={startDraw}
+              className="px-4 py-2 bg-bg-card text-text-secondary rounded-lg text-sm hover:bg-bg-secondary transition-colors cursor-pointer">
+              🎨 涂鸦
+            </button>
+          </div>
         </form>
       </div>
 
@@ -491,7 +502,63 @@ export default function GraffitiWall() {
                 else if (page <= 4) p = i + 1
                 else if (page >= totalPages - 3) p = totalPages - 6 + i
                 else p = page - 3 + i
-                return (
+  const startDraw = () => {
+    setDrawing(true)
+    setTimeout(() => {
+      const c = canvasRef.current
+      if (!c) return
+      c.width = 600; c.height = 400
+      const ctx = c.getContext('2d')
+      if (!ctx) return
+      ctx.fillStyle = '#1e293b'
+      ctx.fillRect(0, 0, c.width, c.height)
+      ctx.lineCap = 'round'; ctx.lineJoin = 'round'
+      ctxRef.current = ctx
+    }, 50)
+  }
+
+  const handleDrawStart = (e: React.MouseEvent) => {
+    const ctx = ctxRef.current
+    if (!ctx) return
+    ctx.beginPath()
+    ctx.moveTo(e.nativeEvent.offsetX, e.nativeEvent.offsetY)
+    ctx.strokeStyle = drawColor; ctx.lineWidth = 3
+    ctxRef.current = ctx
+  }
+
+  const handleDrawMove = (e: React.MouseEvent) => {
+    const ctx = ctxRef.current
+    if (!ctx || e.buttons !== 1) return
+    ctx.lineTo(e.nativeEvent.offsetX, e.nativeEvent.offsetY)
+    ctx.stroke()
+    ctx.beginPath()
+    ctx.moveTo(e.nativeEvent.offsetX, e.nativeEvent.offsetY)
+  }
+
+  const handleSubmitDrawing = async () => {
+    const c = canvasRef.current
+    if (!c) return
+    const blob = await new Promise<Blob | null>(res => c.toBlob(res, 'image/png'))
+    if (!blob) return
+    const fd = new FormData()
+    fd.append('file', blob, 'drawing.png')
+    try {
+      const result = await api('/upload', { method: 'POST', body: fd }) as { url: string }
+      await api.post('/wall', {
+        nickname: nickname.trim() || '涂鸦者',
+        content: null,
+        image_url: result.url,
+        visitor_id: visitorId,
+      })
+      setDrawing(false)
+      setPage(1)
+      fetchPosts()
+    } catch (err) {
+      setSubmitError(err instanceof Error ? err.message : '发布失败')
+    }
+  }
+
+  return (
                   <button key={p} onClick={() => setPage(p)}
                     className={`w-8 h-8 rounded text-sm cursor-pointer ${p === page ? 'bg-accent text-white' : 'bg-bg-card text-text-secondary hover:bg-bg-secondary'}`}>
                     {p}
@@ -505,6 +572,29 @@ export default function GraffitiWall() {
             </div>
           )}
         </>
+      )}
+
+      {drawing && (
+        <div className="fixed inset-0 z-50 bg-black/80 flex flex-col items-center justify-center p-4" onClick={() => setDrawing(false)}>
+          <div className="bg-bg-card rounded-2xl p-4" onClick={e => e.stopPropagation()}>
+            <div className="flex items-center justify-between mb-3">
+              <span className="text-sm text-text-primary font-medium">🎨 自由涂鸦</span>
+              <div className="flex gap-2 items-center">
+                {['#818cf8', '#f59e0b', '#ef4444', '#22c55e', '#ffffff', '#06b6d4'].map(c => (
+                  <button key={c} onClick={() => setDrawColor(c)}
+                    className="w-5 h-5 rounded-full border-2 cursor-pointer" style={{ backgroundColor: c, borderColor: drawColor === c ? '#fff' : 'transparent' }} />
+                ))}
+                <button onClick={() => setDrawing(false)} className="ml-2 text-text-secondary text-sm cursor-pointer">取消</button>
+                <button onClick={handleSubmitDrawing} className="px-3 py-1 bg-accent text-white rounded text-sm cursor-pointer">发布</button>
+              </div>
+            </div>
+            <canvas ref={canvasRef}
+              onMouseDown={handleDrawStart}
+              onMouseMove={handleDrawMove}
+              className="rounded-lg cursor-crosshair" />
+            <p className="text-xs text-text-secondary mt-2">按住鼠标左键画出你想要的涂鸦</p>
+          </div>
+        </div>
       )}
     </div>
   );
