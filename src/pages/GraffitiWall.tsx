@@ -262,15 +262,6 @@ export default function GraffitiWall() {
 
   useEffect(() => { fetchDrawings() }, [])
 
-  useEffect(() => {
-    const onScroll = () => {
-      const c = bgCanvasRef.current
-      if (c) { c.style.height = document.body.scrollHeight + 'px'; c.height = document.body.scrollHeight }
-    }
-    window.addEventListener('scroll', onScroll)
-    window.addEventListener('resize', onScroll)
-    return () => { window.removeEventListener('scroll', onScroll); window.removeEventListener('resize', onScroll) }
-  }, [])
 
   useEffect(() => { if (drawings.length) renderDrawings() }, [drawings, renderDrawings])
 
@@ -278,21 +269,28 @@ export default function GraffitiWall() {
     if (!drawing) return
     const c = bgCanvasRef.current
     if (!c) return
-    const h = document.body.scrollHeight
-    c.width = window.innerWidth
-    c.height = h
-    c.style.width = '100%'
-    c.style.height = h + 'px'
+    c.width = window.innerWidth; c.height = window.innerHeight
+    c.style.width = '100vw'; c.style.height = '100vh'
     c.style.pointerEvents = 'auto'
     fetchDrawings()
     return () => { if (c) c.style.pointerEvents = 'none' }
   }, [drawing])
 
+  const isOnCard = (el: HTMLElement | null): boolean => {
+    while (el) {
+      if (el.classList.contains('break-inside-avoid')) return true
+      el = el.parentElement
+    }
+    return false
+  }
+
   const handleBgDown = async (e: React.MouseEvent) => {
     if (!drawing) return
 
+    if (isOnCard(e.target as HTMLElement)) return
+
     if (drawColor === 'eraser') {
-      const px = e.pageX, py = e.pageY
+      const px = e.clientX, py = e.clientY
       let closest: any = null, minDist = 30
       for (const d of drawings) {
         const points = JSON.parse(d.stroke_data) as { x: number; y: number }[]
@@ -314,17 +312,17 @@ export default function GraffitiWall() {
     if (!ctx) return
     const points: { x: number; y: number }[] = []
     ctx.beginPath()
-    ctx.moveTo(e.pageX, e.pageY)
-    points.push({ x: e.pageX, y: e.pageY })
+    ctx.moveTo(e.clientX, e.clientY)
+    points.push({ x: e.clientX, y: e.clientY })
     ctx.strokeStyle = drawColor; ctx.lineWidth = 3
     ctx.lineCap = 'round'; ctx.lineJoin = 'round'
 
     const onMove = (ev: MouseEvent) => {
-      ctx.lineTo(ev.pageX, ev.pageY)
+      ctx.lineTo(ev.clientX, ev.clientY)
       ctx.stroke()
       ctx.beginPath()
-      ctx.moveTo(ev.pageX, ev.pageY)
-      points.push({ x: ev.pageX, y: ev.pageY })
+      ctx.moveTo(ev.clientX, ev.clientY)
+      points.push({ x: ev.clientX, y: ev.clientY })
     }
     const onUp = async () => {
       document.removeEventListener('mousemove', onMove)
@@ -342,7 +340,7 @@ export default function GraffitiWall() {
     <div className="max-w-7xl mx-auto px-4 py-8 relative">
       <canvas ref={bgCanvasRef}
         onMouseDown={handleBgDown}
-        className="absolute inset-0 z-0 pointer-events-none" style={{ cursor: drawing ? 'crosshair' : 'default' }} />
+        className="fixed inset-0 z-20 pointer-events-none" style={{ cursor: drawing ? 'crosshair' : 'default' }} />
 
       {drawing && (
         <div className="fixed top-4 left-1/2 -translate-x-1/2 z-40 flex gap-2 bg-bg-card/95 backdrop-blur rounded-xl px-4 py-2 items-center flex-wrap">
@@ -354,6 +352,10 @@ export default function GraffitiWall() {
           <button onClick={() => { setDrawColor('eraser') }}
             className={`px-2 py-0.5 text-xs rounded cursor-pointer ${drawColor === 'eraser' ? 'bg-accent text-white' : 'bg-bg-secondary text-text-secondary'}`}>
             🧹 擦除
+          </button>
+          <button onClick={() => setDrawing(false)}
+            className="px-3 py-1 text-xs rounded cursor-pointer bg-red-500 text-white font-bold hover:bg-red-600 transition-colors">
+            ✕ 退出涂鸦
           </button>
           <span className="text-xs text-text-secondary">按住拖动涂鸦 | 选🧹擦除后点击线条删除</span>
         </div>
