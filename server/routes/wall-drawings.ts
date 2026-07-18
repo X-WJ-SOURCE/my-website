@@ -8,11 +8,7 @@ drawingsRouter.get('/', async (c) => {
   return c.json(drawings)
 })
 
-drawingsRouter.delete('/:id', async (c) => {
-  const id = c.req.param('id')
-  await db().execute({ sql: 'DELETE FROM wall_drawings WHERE id = ?', args: [id] })
-  return c.json({ message: 'Deleted' })
-})
+drawingsRouter.post('/', async (c) => {
   const { stroke_data, color } = await c.req.json()
   if (!stroke_data || !color) return c.json({ error: 'Missing data' }, 400)
   await db().execute({
@@ -20,6 +16,12 @@ drawingsRouter.delete('/:id', async (c) => {
     args: [JSON.stringify(stroke_data), color]
   })
   return c.json({ message: 'Saved' }, 201)
+})
+
+drawingsRouter.delete('/:id', async (c) => {
+  const id = c.req.param('id')
+  await db().execute({ sql: 'DELETE FROM wall_drawings WHERE id = ?', args: [id] })
+  return c.json({ message: 'Deleted' })
 })
 
 export default drawingsRouter
