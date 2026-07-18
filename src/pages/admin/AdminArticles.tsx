@@ -211,9 +211,6 @@ export default function AdminArticles() {
               </div>
             </div>
             <div className="flex gap-3">
-
-
-            <div className="flex gap-3">
               <button
                 type="submit"
                 disabled={saving}
