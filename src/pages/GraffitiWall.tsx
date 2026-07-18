@@ -42,6 +42,7 @@ export default function GraffitiWall() {
   const [nickname, setNickname] = useState("");
   const [content, setContent] = useState("");
   const [images, setImages] = useState<string[]>([]);
+  const [paperStyle, setPaperStyle] = useState('plain');
   const [uploading, setUploading] = useState(false);
   const [submitting, setSubmitting] = useState(false);
   const [submitError, setSubmitError] = useState<string | null>(null);
@@ -93,11 +94,13 @@ export default function GraffitiWall() {
         content: content.trim() || null,
         image_url: images.length > 0 ? images[0] : null,
         images: images.length > 0 ? images : undefined,
+        paper_style: paperStyle,
         visitor_id: visitorId,
       });
       setNickname("");
       setContent("");
       setImages([]);
+      setPaperStyle('plain');
       setPage(1);
       fetchPosts();
     } catch (err) {
@@ -265,7 +268,19 @@ export default function GraffitiWall() {
           {submitError && (
             <p className="text-red-400 text-sm mb-2">{submitError}</p>
           )}
-          <div className="flex gap-2">
+          <div className="flex gap-2 items-center flex-wrap">
+            <label className="text-xs text-text-secondary">便签样式</label>
+            <select value={paperStyle} onChange={e => setPaperStyle(e.target.value)}
+              className="px-2 py-1.5 bg-bg-primary border border-bg-card rounded text-xs text-text-primary cursor-pointer">
+              <option value="plain">纯色</option>
+              <option value="lined">横线本</option>
+              <option value="grid">方格纸</option>
+              <option value="dotted">点阵纸</option>
+              <option value="taped">胶带粘贴</option>
+              <option value="folded">折角</option>
+              <option value="polaroid">拍立得</option>
+              <option value="torn">撕边</option>
+            </select>
             <button type="submit"
               disabled={(!content.trim() && !images.length) || submitting}
               className="px-4 py-2 bg-accent text-white rounded-lg text-sm hover:opacity-80 transition-opacity disabled:opacity-40 disabled:cursor-not-allowed cursor-pointer"
@@ -308,40 +323,41 @@ export default function GraffitiWall() {
           <div className="columns-1 sm:columns-2 lg:columns-3 xl:columns-4 gap-4 space-y-4">
             {posts.map((post, index) => {
               const style = getCardStyle(index);
+              const paper = (post as any).paper_style || style.paperStyle;
               return (
                 <div
                   key={post.id}
-                  className={`break-inside-avoid rounded-[4px] p-4 border shadow-lg transition-transform hover:scale-[1.02] hover:z-10 relative ${style.paperStyle === 'polaroid' ? 'pb-8' : ''}`}
+                  className={`break-inside-avoid rounded-[4px] p-4 border shadow-lg transition-transform hover:scale-[1.02] hover:z-10 relative ${paper === 'polaroid' ? 'pb-8' : ''}`}
                   style={{
-                    backgroundColor: `hsl(${style.bgHue}, 30%, ${style.paperStyle === 'polaroid' ? '20%' : '18%'})`,
+                    backgroundColor: `hsl(${style.bgHue}, 30%, ${paper === 'polaroid' ? '20%' : '18%'})`,
                     borderColor: style.accentColor,
-                    borderWidth: style.paperStyle === 'polaroid' ? 3 : 1.5,
-                    borderBottomWidth: style.paperStyle === 'polaroid' ? 10 : style.paperStyle === 'torn' ? 4 : 2,
+                    borderWidth: paper === 'polaroid' ? 3 : 1.5,
+                    borderBottomWidth: paper === 'polaroid' ? 10 : paper === 'torn' ? 4 : 2,
                     transform: `rotate(${style.rotation}deg)`,
                     boxShadow: `2px 3px 10px rgba(0,0,0,0.3), 0 0 0 1px ${style.accentColor}20`,
                   }}
                 >
-                  {style.paperStyle === 'taped' && (
+                  {paper === 'taped' && (
                     <div className="absolute -top-2 left-1/2 -translate-x-1/2 w-12 h-3 rounded-sm opacity-70" style={{ backgroundColor: style.accentColor }} />
                   )}
-                  {style.paperStyle === 'lined' && (
+                  {paper === 'lined' && (
                     <div className="absolute inset-x-3 inset-y-0 pointer-events-none" style={{
                       backgroundImage: 'repeating-linear-gradient(transparent, transparent 23px, rgba(255,255,255,0.03) 23px, rgba(255,255,255,0.03) 24px)'
                     }} />
                   )}
-                  {style.paperStyle === 'grid' && (
+                  {paper === 'grid' && (
                     <div className="absolute inset-0 pointer-events-none opacity-[0.03]" style={{
                       backgroundImage: 'linear-gradient(rgba(255,255,255,0.3) 1px, transparent 1px), linear-gradient(90deg, rgba(255,255,255,0.3) 1px, transparent 1px)',
                       backgroundSize: '20px 20px'
                     }} />
                   )}
-                  {style.paperStyle === 'dotted' && (
+                  {paper === 'dotted' && (
                     <div className="absolute inset-0 pointer-events-none opacity-[0.04]" style={{
                       backgroundImage: 'radial-gradient(circle, rgba(255,255,255,0.5) 1px, transparent 1px)',
                       backgroundSize: '16px 16px'
                     }} />
                   )}
-                  {style.paperStyle === 'folded' && (
+                  {paper === 'folded' && (
                     <div className="absolute bottom-0 right-0 w-0 h-0 border-l-[12px] border-l-transparent border-b-[12px] pointer-events-none" style={{ borderBottomColor: 'rgba(0,0,0,0.15)' }} />
                   )}
                   <div className="flex items-center gap-2 mb-2">

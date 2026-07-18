@@ -51,6 +51,7 @@ export async function initDb() {
   try { await c.execute('ALTER TABLE wall_posts ADD COLUMN edited_at TEXT') } catch (_) {}
   try { await c.execute('ALTER TABLE comments ADD COLUMN images TEXT') } catch (_) {}
   try { await c.execute('ALTER TABLE wall_posts ADD COLUMN images TEXT') } catch (_) {}
+  try { await c.execute('ALTER TABLE wall_posts ADD COLUMN paper_style TEXT') } catch (_) {}
   try { await c.execute(`
     CREATE TABLE IF NOT EXISTS wall_comments (
       id INTEGER PRIMARY KEY AUTOINCREMENT,
