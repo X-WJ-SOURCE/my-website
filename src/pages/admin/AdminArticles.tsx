@@ -121,6 +121,24 @@ export default function AdminArticles() {
     }
   }
 
+  async function handleInlineImage(e: React.ChangeEvent<HTMLInputElement>) {
+    const file = e.target.files?.[0]
+    if (!file) return
+    setUploading(true)
+    try {
+      const fd = new FormData()
+      fd.append('file', file)
+      const result = await api('/upload', { method: 'POST', body: fd }) as { url: string }
+      const md = `![${file.name}](${result.url})`
+      setContent(prev => prev ? `${prev}\n${md}\n` : md)
+    } catch (err) {
+      setError(err instanceof Error ? err.message : '图片上传失败')
+    } finally {
+      setUploading(false)
+      e.target.value = ''
+    }
+  }
+
   async function handleDelete(id: number) {
     if (!window.confirm('确定删除这篇文章？')) return;
     try {
@@ -175,6 +193,13 @@ export default function AdminArticles() {
               rows={12}
               className="px-4 py-3 rounded-lg bg-bg-secondary text-text-primary border border-bg-card focus:border-accent outline-none placeholder:text-text-secondary resize-none font-mono text-sm"
             />
+            <div className="flex items-center gap-2">
+              <label className="px-3 py-1.5 bg-bg-secondary border border-bg-card rounded text-xs text-text-secondary cursor-pointer hover:border-accent transition-colors">
+                {uploading ? '上传中...' : '插入图片'}
+                <input type="file" accept="image/*" onChange={handleInlineImage} className="hidden" disabled={uploading} />
+              </label>
+              <span className="text-xs text-text-secondary">直接插入到文章中</span>
+            </div>
             <div className="flex gap-4 items-center flex-wrap">
               <label className="flex items-center gap-2 text-sm text-text-secondary">
                 <select
