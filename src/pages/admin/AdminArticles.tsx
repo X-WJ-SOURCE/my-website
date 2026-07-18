@@ -27,8 +27,14 @@ export default function AdminArticles() {
   const [visibility, setVisibility] = useState<'public' | 'private'>('public');
   const [tags, setTags] = useState('');
   const [coverUrl, setCoverUrl] = useState('');
+  const [decorImages, setDecorImages] = useState<string[]>([]);
   const [saving, setSaving] = useState(false);
   const [uploading, setUploading] = useState(false);
+
+  function parseDecorImages(raw: string | null): string[] {
+    if (!raw) return []
+    try { return JSON.parse(raw) } catch { return [] }
+  }
 
   useEffect(() => {
     if (!isAuthenticated) {
@@ -57,6 +63,7 @@ export default function AdminArticles() {
     setVisibility('public');
     setTags('');
     setCoverUrl('');
+    setDecorImages([]);
   }
 
   function startEdit(article: Article) {
@@ -67,6 +74,7 @@ export default function AdminArticles() {
     setVisibility(article.visibility);
     setTags(Array.isArray(article.tags) ? article.tags.join(', ') : (article.tags || ''));
     setCoverUrl((article as any).cover_url || '');
+    setDecorImages(parseDecorImages((article as any).decor_images));
   }
 
   function cancelEdit() {
@@ -90,6 +98,7 @@ export default function AdminArticles() {
           .map((t) => t.trim())
           .filter(Boolean),
         cover_url: coverUrl || null,
+        decor_images: decorImages.length > 0 ? decorImages : null,
       };
       if (editId) {
         await api.put(`/articles/${editId}`, payload);
@@ -118,6 +127,23 @@ export default function AdminArticles() {
       setError(err instanceof Error ? err.message : '封面上传失败')
     } finally {
       setUploading(false)
+    }
+  }
+
+  async function handleDecorUpload(e: React.ChangeEvent<HTMLInputElement>) {
+    const file = e.target.files?.[0]
+    if (!file) return
+    setUploading(true)
+    try {
+      const fd = new FormData()
+      fd.append('file', file)
+      const result = await api('/upload', { method: 'POST', body: fd }) as { url: string }
+      setDecorImages(prev => [...prev, result.url])
+    } catch (err) {
+      setError(err instanceof Error ? err.message : '图片上传失败')
+    } finally {
+      setUploading(false)
+      e.target.value = ''
     }
   }
 
@@ -233,6 +259,21 @@ export default function AdminArticles() {
                     <button type="button" onClick={() => setCoverUrl('')} className="text-xs text-red-400 hover:text-red-300">清除</button>
                   </div>
                 )}
+              </div>
+            </div>
+            <div>
+              <label className="block text-sm text-text-secondary mb-2">装饰图（散布在文章四周）</label>
+              <div className="flex flex-wrap gap-3">
+                {decorImages.map((url, i) => (
+                  <div key={i} className="relative">
+                    <img src={url} alt="" className="h-16 w-24 object-cover rounded" />
+                    <button type="button" onClick={() => setDecorImages(prev => prev.filter((_, j) => j !== i))} className="absolute -top-1 -right-1 w-5 h-5 bg-red-500 text-white rounded-full text-xs">×</button>
+                  </div>
+                ))}
+                <label className="px-4 py-2 h-16 w-24 rounded bg-bg-secondary border border-bg-card text-text-secondary text-xs cursor-pointer hover:border-accent flex items-center justify-center transition-colors">
+                  {uploading ? '上传中' : '+ 添加'}
+                  <input type="file" accept="image/*" onChange={handleDecorUpload} className="hidden" disabled={uploading} />
+                </label>
               </div>
             </div>
             <div className="flex gap-3">

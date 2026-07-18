@@ -270,12 +270,33 @@ export default function ArticleDetail() {
   const cover = getCover(article.id);
 
   return (
-    <div className="relative min-h-screen">
+    <div className="relative min-h-screen overflow-hidden">
       {article.cover_url && (
         <div className="fixed inset-0 z-0">
           <img src={article.cover_url} alt="" className="w-full h-full object-cover blur-2xl opacity-15 scale-110" />
         </div>
       )}
+      {(article as any).decor_images && (() => {
+        try {
+          const decors: string[] = JSON.parse((article as any).decor_images)
+          return decors.map((url: string, i: number) => {
+            const positions = [
+              'top-10 -left-4 rotate-[-8deg]', 'top-32 -right-2 rotate-[6deg]', 'bottom-40 -left-1 rotate-[-4deg]',
+              'bottom-20 -right-6 rotate-[10deg]', 'top-[60%] -right-4 rotate-[-6deg]', 'top-[20%] -left-6 rotate-[12deg]',
+              'bottom-10 left-[15%] rotate-[3deg]', 'top-[45%] right-[5%] rotate-[-10deg]',
+            ]
+            const pos = positions[i % positions.length]
+            return (
+              <img
+                key={i}
+                src={url}
+                alt=""
+                className={`fixed z-0 max-w-[180px] max-h-[180px] object-cover rounded-lg shadow-2xl opacity-50 hover:opacity-90 transition-opacity duration-500 ${pos}`}
+              />
+            )
+          })
+        } catch { return null }
+      })()}
       <div className="relative z-10 max-w-4xl mx-auto px-4 py-8">
       <div className="relative rounded-xl overflow-hidden mb-6">
         {article.cover_url ? (

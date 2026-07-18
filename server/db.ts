@@ -42,6 +42,7 @@ export async function initDb() {
     );
   COMMIT;`)
   try { await c.execute('ALTER TABLE articles ADD COLUMN cover_url TEXT') } catch (_) {}
+  try { await c.execute('ALTER TABLE articles ADD COLUMN decor_images TEXT') } catch (_) {}
   await c.executeMultiple(`BEGIN;
     CREATE TABLE IF NOT EXISTS tags (
       id INTEGER PRIMARY KEY AUTOINCREMENT,
