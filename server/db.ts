@@ -40,7 +40,9 @@ export async function initDb() {
       created_at TEXT NOT NULL DEFAULT (datetime('now')),
       updated_at TEXT NOT NULL DEFAULT (datetime('now'))
     );
-    ALTER TABLE articles ADD COLUMN cover_url TEXT;
+  COMMIT;`)
+  try { await c.execute('ALTER TABLE articles ADD COLUMN cover_url TEXT') } catch (_) {}
+  await c.executeMultiple(`BEGIN;
     CREATE TABLE IF NOT EXISTS tags (
       id INTEGER PRIMARY KEY AUTOINCREMENT,
       name TEXT NOT NULL UNIQUE
