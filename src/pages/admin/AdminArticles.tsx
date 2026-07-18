@@ -198,7 +198,7 @@ export default function AdminArticles() {
         </div>
       )}
 
-      {editing && (
+      {editing && (<>
         <form onSubmit={handleSave} className="bg-bg-card rounded-xl p-6 border border-bg-card mb-8">
           <h2 className="text-lg font-bold text-text-primary mb-4">
             {editId ? '编辑文章' : '写文章'}
@@ -359,7 +359,7 @@ export default function AdminArticles() {
           </div>
         )}
 
-      )}
+      </>)}
 
       {loading ? (
         <div className="text-center text-text-secondary py-12">加载中...</div>
