@@ -157,7 +157,7 @@ export default function TagPage() {
           {songs.length > 0 && (
             <div className="mb-6 flex flex-col gap-2">
               {songs.map((song) => (
-                <MusicPlayer key={song.id} url={song.url} title={song.title} />
+                <MusicPlayer key={song.id} url={song.url} title={song.title} highlightTime={(song as any).highlight_time || 0} />
               ))}
             </div>
           )}

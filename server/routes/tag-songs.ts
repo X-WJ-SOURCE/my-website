@@ -15,11 +15,11 @@ tagSongsRouter.get('/tag/:tagId', async (c) => {
 
 tagSongsRouter.post('/tag/:tagId', authMiddleware, async (c) => {
   const tagId = c.req.param('tagId')
-  const { title, url } = await c.req.json()
+  const { title, url, highlight_time } = await c.req.json()
   if (!title || !url) return c.json({ error: 'Title and URL required' }, 400)
   const result = await db().execute({
-    sql: 'INSERT INTO tag_songs (tag_id, title, url) VALUES (?, ?, ?)',
-    args: [tagId, title, url]
+    sql: 'INSERT INTO tag_songs (tag_id, title, url, highlight_time) VALUES (?, ?, ?, ?)',
+    args: [tagId, title, url, highlight_time || null]
   })
   return c.json({ id: Number(result.lastInsertRowid) }, 201)
 })

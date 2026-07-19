@@ -51,6 +51,7 @@ export default function AdminArticles() {
   const [loadingSongs, setLoadingSongs] = useState<Set<number>>(new Set());
   const [newSongTitle, setNewSongTitle] = useState<Record<number, string>>({});
   const [newSongUrl, setNewSongUrl] = useState<Record<number, string>>({});
+  const [newSongHighlight, setNewSongHighlight] = useState<Record<number, string>>({});
   const [savingSong, setSavingSong] = useState<Set<number>>(new Set());
   const [uploadingSong, setUploadingSong] = useState<Set<number>>(new Set());
   const dragRef = useRef(false);
@@ -119,12 +120,14 @@ export default function AdminArticles() {
   async function handleAddSong(tagId: number) {
     const title = newSongTitle[tagId]?.trim();
     const url = newSongUrl[tagId]?.trim();
+    const highlight = newSongHighlight[tagId]?.trim();
     if (!title || !url) return;
     setSavingSong(prev => new Set(prev).add(tagId));
     try {
-      await api.post(`/tag-songs/tag/${tagId}`, { title, url });
+      await api.post(`/tag-songs/tag/${tagId}`, { title, url, highlight_time: Number(highlight) || null });
       setNewSongTitle(prev => ({ ...prev, [tagId]: '' }));
       setNewSongUrl(prev => ({ ...prev, [tagId]: '' }));
+      setNewSongHighlight(prev => ({ ...prev, [tagId]: '' }));
       loadSongs(tagId);
     } catch (err) {
       setError(err instanceof Error ? err.message : '添加歌曲失败');
@@ -350,12 +353,19 @@ export default function AdminArticles() {
                               onChange={(e) => setNewSongTitle(prev => ({ ...prev, [tag.id]: e.target.value }))}
                               className="w-24 px-2 py-1.5 rounded bg-bg-primary text-text-primary border border-bg-card focus:border-accent outline-none placeholder:text-text-secondary text-sm"
                             />
-                            <input
+                             <input
                               type="text"
                               placeholder="音乐链接"
                               value={newSongUrl[tag.id] || ''}
                               onChange={(e) => setNewSongUrl(prev => ({ ...prev, [tag.id]: e.target.value }))}
                                className="flex-1 px-2 py-1.5 rounded bg-bg-primary text-text-primary border border-bg-card focus:border-accent outline-none placeholder:text-text-secondary text-sm"
+                             />
+                             <input
+                              type="number"
+                              placeholder="高潮秒数(选填)"
+                              value={newSongHighlight[tag.id] || ''}
+                              onChange={(e) => setNewSongHighlight(prev => ({ ...prev, [tag.id]: e.target.value }))}
+                              className="w-28 px-2 py-1.5 rounded bg-bg-primary text-text-primary border border-bg-card focus:border-accent outline-none placeholder:text-text-secondary text-sm"
                              />
                              <button
                               onClick={() => handleAddSong(tag.id)}

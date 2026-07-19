@@ -56,6 +56,8 @@ export async function initDb() {
   try { await c.execute('ALTER TABLE tags ADD COLUMN music_title TEXT') } catch (_) {}
   try { await c.execute('ALTER TABLE wall_posts ADD COLUMN music_url TEXT') } catch (_) {}
   try { await c.execute('ALTER TABLE wall_posts ADD COLUMN music_title TEXT') } catch (_) {}
+  try { await c.execute('ALTER TABLE wall_posts ADD COLUMN highlight_time REAL') } catch (_) {}
+  try { await c.execute('ALTER TABLE tag_songs ADD COLUMN highlight_time REAL') } catch (_) {}
   try { await c.execute(`
     CREATE TABLE IF NOT EXISTS tag_songs (
       id INTEGER PRIMARY KEY AUTOINCREMENT,

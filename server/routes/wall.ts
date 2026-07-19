@@ -20,12 +20,12 @@ wallRouter.get('/', async (c) => {
 })
 
 wallRouter.post('/', async (c) => {
-  const { nickname, content, image_url, visitor_id, images, paper_style, music_url, music_title } = await c.req.json()
+  const { nickname, content, image_url, visitor_id, images, paper_style, music_url, music_title, highlight_time } = await c.req.json()
   if (!content && !image_url && !images) return c.json({ error: 'Content or image is required' }, 400)
 
   const result = await db().execute({
-    sql: 'INSERT INTO wall_posts (nickname, content, image_url, visitor_id, images, paper_style, music_url, music_title) VALUES (?, ?, ?, ?, ?, ?, ?, ?)',
-    args: [nickname || 'Anonymous', content || null, image_url || null, visitor_id || null, images ? JSON.stringify(images) : null, paper_style || null, music_url || null, music_title || null]
+    sql: 'INSERT INTO wall_posts (nickname, content, image_url, visitor_id, images, paper_style, music_url, music_title, highlight_time) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)',
+    args: [nickname || 'Anonymous', content || null, image_url || null, visitor_id || null, images ? JSON.stringify(images) : null, paper_style || null, music_url || null, music_title || null, highlight_time || null]
   })
   return c.json({ id: Number(result.lastInsertRowid), message: 'Posted to wall' }, 201)
 })

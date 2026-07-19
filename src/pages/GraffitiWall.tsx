@@ -46,6 +46,7 @@ export default function GraffitiWall() {
   const [paperStyle, setPaperStyle] = useState('plain');
   const [musicUrl, setMusicUrl] = useState('');
   const [musicTitle, setMusicTitle] = useState('');
+  const [musicHighlight, setMusicHighlight] = useState('');
   const [showMusic, setShowMusic] = useState(false);
   const [uploading, setUploading] = useState(false);
   const [submitting, setSubmitting] = useState(false);
@@ -101,6 +102,7 @@ export default function GraffitiWall() {
         paper_style: paperStyle,
         music_url: musicUrl || null,
         music_title: musicTitle || null,
+        highlight_time: Number(musicHighlight) || null,
         visitor_id: visitorId,
       });
       setNickname("");
@@ -109,6 +111,7 @@ export default function GraffitiWall() {
       setPaperStyle('plain');
       setMusicUrl('');
       setMusicTitle('');
+      setMusicHighlight('');
       setShowMusic(false);
       setPage(1);
       fetchPosts();
@@ -285,6 +288,8 @@ export default function GraffitiWall() {
                   className="flex-1 px-2 py-1 bg-bg-primary border border-bg-card rounded text-xs text-text-primary outline-none" />
                 <input type="text" placeholder="mp3外链地址" value={musicUrl} onChange={e => setMusicUrl(e.target.value)}
                   className="flex-[2] px-2 py-1 bg-bg-primary border border-bg-card rounded text-xs text-text-primary outline-none" />
+                <input type="number" placeholder="高潮秒数(选填)" value={musicHighlight} onChange={e => setMusicHighlight(e.target.value)}
+                  className="w-24 px-2 py-1 bg-bg-primary border border-bg-card rounded text-xs text-text-primary outline-none" />
               </div>
             )}
           </div>
@@ -463,7 +468,7 @@ export default function GraffitiWall() {
                   )}
                   {(post as any).music_url && (
                     <div className="mt-2">
-                      <MusicPlayer url={(post as any).music_url} title={(post as any).music_title} />
+                      <MusicPlayer url={(post as any).music_url} title={(post as any).music_title} highlightTime={(post as any).highlight_time || 0} />
                     </div>
                   )}
                   <p
