@@ -6,7 +6,7 @@ const tagRouter = new Hono()
 tagRouter.get('/', async (c) => {
   const tags = (await db().execute({
     sql: `
-    SELECT t.id, t.name, COUNT(at.article_id) as article_count
+    SELECT t.id, t.name, COUNT(a.id) as article_count
     FROM tags t
     LEFT JOIN article_tags at ON t.id = at.tag_id
     LEFT JOIN articles a ON at.article_id = a.id AND a.visibility = 'public'
