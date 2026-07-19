@@ -7,6 +7,7 @@ import { fileURLToPath } from 'url'
 import authRouter from './routes/auth.js'
 import articlesRouter from './routes/articles.js'
 import tagsRouter from './routes/tags.js'
+import tagSongsRouter from './routes/tag-songs.js'
 import commentsRouter from './routes/comments.js'
 import guestbookRouter from './routes/guestbook.js'
 import messagesRouter from './routes/messages.js'
@@ -49,6 +50,7 @@ app.get('/api/health', (c) => c.json({ status: 'ok' }))
 app.route('/api/auth', authRouter)
 app.route('/api/articles', articlesRouter)
 app.route('/api/tags', tagsRouter)
+app.route('/api/tag-songs', tagSongsRouter)
 app.route('/api/comments', commentsRouter)
 app.route('/api/guestbook', guestbookRouter)
 app.route('/api/messages', messagesRouter)

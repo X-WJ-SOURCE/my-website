@@ -17,8 +17,14 @@ interface Tag {
   id: number;
   name: string;
   count: number;
-  music_url?: string;
-  music_title?: string;
+}
+
+interface TagSong {
+  id: number;
+  tag_id: number;
+  title: string;
+  url: string;
+  created_at: string;
 }
 
 export default function AdminArticles() {
@@ -40,9 +46,13 @@ export default function AdminArticles() {
   const [uploading, setUploading] = useState(false);
   const [previewDecor, setPreviewDecor] = useState(false);
   const [allTags, setAllTags] = useState<Tag[]>([]);
-  const [tagMusicUrl, setTagMusicUrl] = useState<Record<number, string>>({});
-  const [tagMusicTitle, setTagMusicTitle] = useState<Record<number, string>>({});
-  const [tagSaving, setTagSaving] = useState<Record<number, boolean>>({});
+  const [expandedTags, setExpandedTags] = useState<Set<number>>(new Set());
+  const [tagSongs, setTagSongs] = useState<Record<number, TagSong[]>>({});
+  const [loadingSongs, setLoadingSongs] = useState<Set<number>>(new Set());
+  const [newSongTitle, setNewSongTitle] = useState<Record<number, string>>({});
+  const [newSongUrl, setNewSongUrl] = useState<Record<number, string>>({});
+  const [savingSong, setSavingSong] = useState<Set<number>>(new Set());
+  const [uploadingSong, setUploadingSong] = useState<Set<number>>(new Set());
   const dragRef = useRef(false);
 
   function parseDecorImages(raw: string | null): { url: string; x: number; y: number; w: number }[] {
@@ -77,18 +87,82 @@ export default function AdminArticles() {
     } catch {}
   }
 
-  async function handleSaveTagMusic(tagId: number) {
-    setTagSaving(prev => ({ ...prev, [tagId]: true }));
+  async function loadSongs(tagId: number) {
+    setLoadingSongs(prev => new Set(prev).add(tagId));
     try {
-      await api.put(`/tags/${tagId}`, {
-        music_url: tagMusicUrl[tagId] || null,
-        music_title: tagMusicTitle[tagId] || null,
-      });
-      fetchTags();
+      const data = await api.get(`/tag-songs/tag/${tagId}`) as TagSong[];
+      setTagSongs(prev => ({ ...prev, [tagId]: data || [] }));
     } catch (err) {
-      setError(err instanceof Error ? err.message : '保存标签音乐失败');
+      setError(err instanceof Error ? err.message : '加载歌曲失败');
     } finally {
-      setTagSaving(prev => ({ ...prev, [tagId]: false }));
+      setLoadingSongs(prev => {
+        const next = new Set(prev);
+        next.delete(tagId);
+        return next;
+      });
+    }
+  }
+
+  function toggleTag(tagId: number) {
+    setExpandedTags(prev => {
+      const next = new Set(prev);
+      if (next.has(tagId)) {
+        next.delete(tagId);
+      } else {
+        next.add(tagId);
+        if (!tagSongs[tagId]) loadSongs(tagId);
+      }
+      return next;
+    });
+  }
+
+  async function handleAddSong(tagId: number) {
+    const title = newSongTitle[tagId]?.trim();
+    const url = newSongUrl[tagId]?.trim();
+    if (!title || !url) return;
+    setSavingSong(prev => new Set(prev).add(tagId));
+    try {
+      await api.post(`/tag-songs/tag/${tagId}`, { title, url });
+      setNewSongTitle(prev => ({ ...prev, [tagId]: '' }));
+      setNewSongUrl(prev => ({ ...prev, [tagId]: '' }));
+      loadSongs(tagId);
+    } catch (err) {
+      setError(err instanceof Error ? err.message : '添加歌曲失败');
+    } finally {
+      setSavingSong(prev => {
+        const next = new Set(prev);
+        next.delete(tagId);
+        return next;
+      });
+    }
+  }
+
+  async function handleDeleteSong(songId: number, tagId: number) {
+    if (!window.confirm('确定删除这首歌？')) return;
+    try {
+      await api.delete(`/tag-songs/${songId}`);
+      loadSongs(tagId);
+    } catch (err) {
+      setError(err instanceof Error ? err.message : '删除歌曲失败');
+    }
+  }
+
+  async function handleAudioUpload(tagId: number, file: File | undefined) {
+    if (!file) return;
+    setUploadingSong(prev => new Set(prev).add(tagId));
+    try {
+      const fd = new FormData();
+      fd.append('file', file);
+      const result = await api('/upload', { method: 'POST', body: fd }) as { url: string };
+      setNewSongUrl(prev => ({ ...prev, [tagId]: result.url }));
+    } catch (err) {
+      setError(err instanceof Error ? err.message : '音频上传失败');
+    } finally {
+      setUploadingSong(prev => {
+        const next = new Set(prev);
+        next.delete(tagId);
+        return next;
+      });
     }
   }
 
@@ -238,32 +312,79 @@ export default function AdminArticles() {
         <div className="bg-bg-card rounded-xl p-6 border border-bg-card mb-8">
           <h2 className="text-lg font-bold text-text-primary mb-4">标签音乐管理</h2>
           <div className="flex flex-col gap-3">
-            {allTags.map((tag) => (
-              <div key={tag.id} className="flex items-center gap-3 bg-bg-secondary rounded-lg p-3 flex-wrap">
-                <span className="text-sm font-medium text-text-primary min-w-[80px]">{tag.name}</span>
-                <input
-                  type="text"
-                  placeholder="音乐链接"
-                  value={tagMusicUrl[tag.id] ?? tag.music_url ?? ''}
-                  onChange={(e) => setTagMusicUrl(prev => ({ ...prev, [tag.id]: e.target.value }))}
-                  className="flex-1 px-3 py-2 rounded-lg bg-bg-primary text-text-primary border border-bg-card focus:border-accent outline-none placeholder:text-text-secondary text-sm"
-                />
-                <input
-                  type="text"
-                  placeholder="歌曲名"
-                  value={tagMusicTitle[tag.id] ?? tag.music_title ?? ''}
-                  onChange={(e) => setTagMusicTitle(prev => ({ ...prev, [tag.id]: e.target.value }))}
-                  className="w-32 px-3 py-2 rounded-lg bg-bg-primary text-text-primary border border-bg-card focus:border-accent outline-none placeholder:text-text-secondary text-sm"
-                />
-                <button
-                  onClick={() => handleSaveTagMusic(tag.id)}
-                  disabled={tagSaving[tag.id]}
-                  className="px-4 py-2 rounded-lg bg-accent text-white text-sm font-medium hover:opacity-80 transition-opacity disabled:opacity-50 cursor-pointer"
-                >
-                  {tagSaving[tag.id] ? '保存中...' : '保存'}
-                </button>
-              </div>
-            ))}
+            {allTags.map((tag) => {
+              const isExpanded = expandedTags.has(tag.id);
+              return (
+                <div key={tag.id} className="bg-bg-secondary rounded-lg">
+                  <button
+                    onClick={() => toggleTag(tag.id)}
+                    className="w-full flex items-center gap-2 p-3 text-left hover:bg-bg-card/50 transition-colors rounded-lg cursor-pointer"
+                  >
+                    <span className="text-sm font-medium text-text-primary">{tag.name}</span>
+                    <span className="text-sm">{isExpanded ? '🔽' : '🎵'}</span>
+                    <span className="text-xs text-text-secondary">({tag.count})</span>
+                  </button>
+                  {isExpanded && (
+                    <div className="px-3 pb-3">
+                      {loadingSongs.has(tag.id) ? (
+                        <p className="text-xs text-text-secondary py-2">加载中...</p>
+                      ) : (
+                        <>
+                          {(tagSongs[tag.id] || []).map((song) => (
+                            <div key={song.id} className="flex items-center gap-2 py-1.5 border-b border-bg-card/50 last:border-0">
+                              <span className="text-sm text-text-primary truncate flex-1 min-w-0">{song.title}</span>
+                              <span className="text-xs text-text-secondary truncate max-w-[200px] hidden sm:inline">{song.url}</span>
+                              <button
+                                onClick={() => handleDeleteSong(song.id, tag.id)}
+                                className="text-xs px-2 py-1 rounded bg-red-400/10 text-red-400 hover:bg-red-400/20 cursor-pointer shrink-0"
+                              >
+                                删除
+                              </button>
+                            </div>
+                          ))}
+                          <div className="flex items-center gap-2 mt-2 pt-2 border-t border-bg-card">
+                            <input
+                              type="text"
+                              placeholder="歌曲名"
+                              value={newSongTitle[tag.id] || ''}
+                              onChange={(e) => setNewSongTitle(prev => ({ ...prev, [tag.id]: e.target.value }))}
+                              className="w-24 px-2 py-1.5 rounded bg-bg-primary text-text-primary border border-bg-card focus:border-accent outline-none placeholder:text-text-secondary text-sm"
+                            />
+                            <input
+                              type="text"
+                              placeholder="音乐链接"
+                              value={newSongUrl[tag.id] || ''}
+                              onChange={(e) => setNewSongUrl(prev => ({ ...prev, [tag.id]: e.target.value }))}
+                              className="flex-1 px-2 py-1.5 rounded bg-bg-primary text-text-primary border border-bg-card focus:border-accent outline-none placeholder:text-text-secondary text-sm"
+                            />
+                            <label className={`px-2 py-1.5 rounded bg-bg-primary text-text-secondary border border-bg-card hover:border-accent cursor-pointer text-xs shrink-0 ${uploadingSong.has(tag.id) ? 'opacity-50' : ''}`}>
+                              {uploadingSong.has(tag.id) ? '上传中' : '上传'}
+                              <input
+                                type="file"
+                                accept="audio/*"
+                                className="hidden"
+                                disabled={uploadingSong.has(tag.id)}
+                                onChange={(e) => {
+                                  handleAudioUpload(tag.id, e.target.files?.[0]);
+                                  e.target.value = '';
+                                }}
+                              />
+                            </label>
+                            <button
+                              onClick={() => handleAddSong(tag.id)}
+                              disabled={savingSong.has(tag.id)}
+                              className="px-3 py-1.5 rounded bg-accent text-white text-xs font-medium hover:opacity-80 disabled:opacity-50 cursor-pointer shrink-0"
+                            >
+                              {savingSong.has(tag.id) ? '...' : '添加'}
+                            </button>
+                          </div>
+                        </>
+                      )}
+                    </div>
+                  )}
+                </div>
+              );
+            })}
           </div>
         </div>
       )}

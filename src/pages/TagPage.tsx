@@ -18,8 +18,14 @@ interface Tag {
   id: number;
   name: string;
   count: number;
-  music_url?: string;
-  music_title?: string;
+}
+
+interface TagSong {
+  id: number;
+  tag_id: number;
+  title: string;
+  url: string;
+  created_at: string;
 }
 
 function getCover(id: number): { bg: string; pattern: string } {
@@ -94,6 +100,7 @@ export default function TagPage() {
   const { tagName } = useParams<{ tagName: string }>();
   const [articles, setArticles] = useState<Article[]>([]);
   const [tag, setTag] = useState<Tag | null>(null);
+  const [songs, setSongs] = useState<TagSong[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
@@ -110,6 +117,13 @@ export default function TagPage() {
         const tagList = tagsData as Tag[];
         const found = tagList.find((t) => t.name === tagName) || null;
         setTag(found);
+        if (found) {
+          api.get(`/tag-songs/tag/${found.id}`)
+            .then((songsData) => {
+              setSongs(songsData as TagSong[] || []);
+            })
+            .catch(() => {});
+        }
       })
       .catch((err) => {
         setError(err instanceof Error ? err.message : "加载失败");
@@ -140,9 +154,11 @@ export default function TagPage() {
             <p className="text-text-secondary text-sm">{articles.length} 篇文章</p>
           </div>
 
-          {tag?.music_url && (
-            <div className="mb-6">
-              <MusicPlayer url={tag.music_url} title={tag.music_title} />
+          {songs.length > 0 && (
+            <div className="mb-6 flex flex-col gap-2">
+              {songs.map((song) => (
+                <MusicPlayer key={song.id} url={song.url} title={song.title} />
+              ))}
             </div>
           )}
 

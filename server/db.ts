@@ -57,6 +57,15 @@ export async function initDb() {
   try { await c.execute('ALTER TABLE wall_posts ADD COLUMN music_url TEXT') } catch (_) {}
   try { await c.execute('ALTER TABLE wall_posts ADD COLUMN music_title TEXT') } catch (_) {}
   try { await c.execute(`
+    CREATE TABLE IF NOT EXISTS tag_songs (
+      id INTEGER PRIMARY KEY AUTOINCREMENT,
+      tag_id INTEGER NOT NULL REFERENCES tags(id) ON DELETE CASCADE,
+      title TEXT NOT NULL,
+      url TEXT NOT NULL,
+      created_at TEXT NOT NULL DEFAULT (datetime('now'))
+    )
+  `) } catch (_) {}
+  try { await c.execute(`
     CREATE TABLE IF NOT EXISTS wall_comments (
       id INTEGER PRIMARY KEY AUTOINCREMENT,
       wall_id INTEGER NOT NULL REFERENCES wall_posts(id) ON DELETE CASCADE,
