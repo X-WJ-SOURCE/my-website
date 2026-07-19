@@ -156,7 +156,7 @@ export default function Home() {
                 to={`/tags/${encodeURIComponent(tag.name)}`}
                 className="shrink-0 px-4 py-2 rounded-full bg-bg-card border border-bg-card hover:border-accent/50 hover:text-accent text-text-secondary text-sm transition-colors"
               >
-                #{tag.name} <span className="text-text-secondary/50 text-xs">({tag.count})</span>
+                #{tag.name} <span className="text-text-secondary/50 text-xs">({tag.article_count})</span>
               </Link>
             ))}
           </div>
