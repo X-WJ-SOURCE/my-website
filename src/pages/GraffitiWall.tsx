@@ -1,5 +1,6 @@
 import { useState, useEffect, useCallback, useRef } from "react";
 import { api, formatTime, getVisitorId } from "../lib/api";
+import MusicPlayer from "../components/MusicPlayer";
 
 interface WallPost {
   id: number;
@@ -45,6 +46,10 @@ export default function GraffitiWall() {
   const [paperStyle, setPaperStyle] = useState('plain');
   const [uploading, setUploading] = useState(false);
   const [submitting, setSubmitting] = useState(false);
+  const [musicUrl, setMusicUrl] = useState('');
+  const [musicTitle, setMusicTitle] = useState('');
+  const [uploadingMusic, setUploadingMusic] = useState(false);
+  const [showMusicInput, setShowMusicInput] = useState(false);
   const [submitError, setSubmitError] = useState<string | null>(null);
 
   const [editingPostId, setEditingPostId] = useState<number | null>(null);
@@ -96,11 +101,16 @@ export default function GraffitiWall() {
         images: images.length > 0 ? images : undefined,
         paper_style: paperStyle,
         visitor_id: visitorId,
+        music_url: musicUrl || null,
+        music_title: musicTitle || null,
       });
       setNickname("");
       setContent("");
       setImages([]);
       setPaperStyle('plain');
+      setMusicUrl('');
+      setMusicTitle('');
+      setShowMusicInput(false);
       setPage(1);
       fetchPosts();
     } catch (err) {
@@ -263,6 +273,35 @@ export default function GraffitiWall() {
                 {uploading ? '...' : '+ 图片'}
                 <input type="file" accept="image/*" onChange={handleImageUpload} className="hidden" disabled={uploading} />
               </label>
+            )}
+          </div>
+          <div className="mb-3">
+            <button type="button" onClick={() => setShowMusicInput(!showMusicInput)}
+              className="text-xs text-text-secondary hover:text-accent cursor-pointer transition-colors">
+              🎵 音乐
+            </button>
+            {showMusicInput && (
+              <div className="mt-2 flex flex-col gap-2">
+                <input type="text" placeholder="音乐链接 (mp3地址)"
+                  value={musicUrl} onChange={(e) => setMusicUrl(e.target.value)}
+                  className="w-full px-3 py-2 bg-bg-primary border border-bg-card rounded-lg text-text-primary placeholder-text-secondary text-xs focus:outline-none focus:border-accent" />
+                <input type="text" placeholder="歌曲名"
+                  value={musicTitle} onChange={(e) => setMusicTitle(e.target.value)}
+                  className="w-full px-3 py-2 bg-bg-primary border border-bg-card rounded-lg text-text-primary placeholder-text-secondary text-xs focus:outline-none focus:border-accent" />
+                <label className="px-3 py-1.5 bg-bg-primary border border-bg-card rounded text-xs text-text-secondary cursor-pointer hover:border-accent self-start transition-colors">
+                  {uploadingMusic ? '上传中...' : '上传音乐'}
+                  <input type="file" accept="audio/*" onChange={async (e) => {
+                    const file = e.target.files?.[0]; if (!file) return
+                    setUploadingMusic(true)
+                    try {
+                      const fd = new FormData(); fd.append('file', file)
+                      const result = await api('/upload', { method: 'POST', body: fd }) as { url: string }
+                      setMusicUrl(result.url)
+                    } catch { setSubmitError('音乐上传失败') }
+                    finally { setUploadingMusic(false); e.target.value = '' }
+                  }} className="hidden" disabled={uploadingMusic} />
+                </label>
+              </div>
             )}
           </div>
           {submitError && (
@@ -437,6 +476,11 @@ export default function GraffitiWall() {
                   )}
                   {post.image_url && !((post as any).images && JSON.parse((post as any).images || '[]').length > 0) && (
                     <img src={post.image_url} alt="" className="w-full rounded mb-2" />
+                  )}
+                  {(post as any).music_url && (
+                    <div className="mt-2">
+                      <MusicPlayer url={(post as any).music_url} title={(post as any).music_title} />
+                    </div>
                   )}
                   <p
                     className="text-xs mt-2"

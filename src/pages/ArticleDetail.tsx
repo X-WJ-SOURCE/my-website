@@ -2,6 +2,7 @@ import { useState, useEffect, useCallback } from "react";
 import { useParams } from "react-router-dom";
 import { api, formatTime, getVisitorId } from "../lib/api";
 import Markdown from "../components/Markdown";
+import MusicPlayer from "../components/MusicPlayer";
 
 interface Article {
   id: number;
@@ -13,6 +14,8 @@ interface Article {
   tags: string[];
   view_count: number;
   cover_url: string | null;
+  music_url?: string;
+  music_title?: string;
 }
 
 interface Comment {
@@ -422,9 +425,15 @@ export default function ArticleDetail() {
         </div>
       </article>
 
+      {article.music_url && (
+        <div className="mb-6">
+          <MusicPlayer url={article.music_url} title={article.music_title} />
+        </div>
+      )}
+
       <section className="mb-8">
         <h3 className="text-lg font-semibold text-text-primary mb-3">
-            表情
+          表情
         </h3>
         <div className="flex gap-2 flex-wrap">
           {EMOJIS.map((emoji) => {

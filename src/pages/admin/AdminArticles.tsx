@@ -11,6 +11,8 @@ interface Article {
   tags: string[];
   created_at: string;
   updated_at: string;
+  music_url?: string;
+  music_title?: string;
 }
 
 export default function AdminArticles() {
@@ -30,7 +32,10 @@ export default function AdminArticles() {
   const [decorImages, setDecorImages] = useState<{ url: string; x: number; y: number; w: number }[]>([]);
   const [saving, setSaving] = useState(false);
   const [uploading, setUploading] = useState(false);
+  const [uploadingMusic, setUploadingMusic] = useState(false);
   const [previewDecor, setPreviewDecor] = useState(false);
+  const [musicUrl, setMusicUrl] = useState('');
+  const [musicTitle, setMusicTitle] = useState('');
   const dragRef = useRef(false);
 
   function parseDecorImages(raw: string | null): { url: string; x: number; y: number; w: number }[] {
@@ -66,6 +71,8 @@ export default function AdminArticles() {
     setTags('');
     setCoverUrl('');
     setDecorImages([]);
+    setMusicUrl('');
+    setMusicTitle('');
   }
 
   function startEdit(article: Article) {
@@ -77,6 +84,8 @@ export default function AdminArticles() {
     setTags(Array.isArray(article.tags) ? article.tags.join(', ') : (article.tags || ''));
     setCoverUrl((article as any).cover_url || '');
     setDecorImages(parseDecorImages((article as any).decor_images));
+    setMusicUrl((article as any).music_url || '');
+    setMusicTitle((article as any).music_title || '');
   }
 
   function cancelEdit() {
@@ -101,6 +110,8 @@ export default function AdminArticles() {
           .filter(Boolean),
         cover_url: coverUrl || null,
         decor_images: decorImages.length > 0 ? decorImages : null,
+        music_url: musicUrl || null,
+        music_title: musicTitle || null,
       };
       if (editId) {
         await api.put(`/articles/${editId}`, payload);
@@ -147,6 +158,17 @@ export default function AdminArticles() {
       setUploading(false)
       e.target.value = ''
     }
+  }
+
+  async function handleMusicUpload(e: React.ChangeEvent<HTMLInputElement>) {
+    const file = e.target.files?.[0]; if (!file) return
+    setUploadingMusic(true)
+    try {
+      const fd = new FormData(); fd.append('file', file)
+      const result = await api('/upload', { method: 'POST', body: fd }) as { url: string }
+      setMusicUrl(result.url)
+    } catch (err) { setError('音乐上传失败') }
+    finally { setUploadingMusic(false); e.target.value = '' }
   }
 
   async function handleInlineImage(e: React.ChangeEvent<HTMLInputElement>) {
@@ -292,6 +314,29 @@ export default function AdminArticles() {
                 <label className="px-4 py-2 h-16 w-24 rounded bg-bg-secondary border border-dashed border-bg-card text-text-secondary text-xs cursor-pointer hover:border-accent flex items-center justify-center">
                   {uploading ? '上传中' : '+ 添加'}
                   <input type="file" accept="image/*" onChange={handleDecorUpload} className="hidden" disabled={uploading} />
+                </label>
+              </div>
+            </div>
+            <div>
+              <label className="block text-sm text-text-secondary mb-2">背景音乐</label>
+              <div className="flex flex-col gap-2">
+                <input
+                  type="text"
+                  placeholder="音乐链接 (mp3地址)"
+                  value={musicUrl}
+                  onChange={(e) => setMusicUrl(e.target.value)}
+                  className="px-4 py-3 rounded-lg bg-bg-secondary text-text-primary border border-bg-card focus:border-accent outline-none placeholder:text-text-secondary"
+                />
+                <input
+                  type="text"
+                  placeholder="歌曲名"
+                  value={musicTitle}
+                  onChange={(e) => setMusicTitle(e.target.value)}
+                  className="px-4 py-3 rounded-lg bg-bg-secondary text-text-primary border border-bg-card focus:border-accent outline-none placeholder:text-text-secondary"
+                />
+                <label className="px-4 py-2 rounded-lg bg-bg-secondary text-text-secondary border border-bg-card hover:border-accent cursor-pointer text-sm transition-colors self-start">
+                  {uploadingMusic ? '上传中...' : '上传音乐'}
+                  <input type="file" accept="audio/*" onChange={handleMusicUpload} className="hidden" disabled={uploadingMusic} />
                 </label>
               </div>
             </div>
