@@ -355,22 +355,9 @@ export default function AdminArticles() {
                               placeholder="音乐链接"
                               value={newSongUrl[tag.id] || ''}
                               onChange={(e) => setNewSongUrl(prev => ({ ...prev, [tag.id]: e.target.value }))}
-                              className="flex-1 px-2 py-1.5 rounded bg-bg-primary text-text-primary border border-bg-card focus:border-accent outline-none placeholder:text-text-secondary text-sm"
-                            />
-                            <label className={`px-2 py-1.5 rounded bg-bg-primary text-text-secondary border border-bg-card hover:border-accent cursor-pointer text-xs shrink-0 ${uploadingSong.has(tag.id) ? 'opacity-50' : ''}`}>
-                              {uploadingSong.has(tag.id) ? '上传中' : '上传'}
-                              <input
-                                type="file"
-                                accept="audio/*"
-                                className="hidden"
-                                disabled={uploadingSong.has(tag.id)}
-                                onChange={(e) => {
-                                  handleAudioUpload(tag.id, e.target.files?.[0]);
-                                  e.target.value = '';
-                                }}
-                              />
-                            </label>
-                            <button
+                               className="flex-1 px-2 py-1.5 rounded bg-bg-primary text-text-primary border border-bg-card focus:border-accent outline-none placeholder:text-text-secondary text-sm"
+                             />
+                             <button
                               onClick={() => handleAddSong(tag.id)}
                               disabled={savingSong.has(tag.id)}
                               className="px-3 py-1.5 rounded bg-accent text-white text-xs font-medium hover:opacity-80 disabled:opacity-50 cursor-pointer shrink-0"

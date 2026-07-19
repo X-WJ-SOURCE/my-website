@@ -283,19 +283,8 @@ export default function GraffitiWall() {
               <div className="flex gap-2 mt-2">
                 <input type="text" placeholder="歌曲名" value={musicTitle} onChange={e => setMusicTitle(e.target.value)}
                   className="flex-1 px-2 py-1 bg-bg-primary border border-bg-card rounded text-xs text-text-primary outline-none" />
-                <input type="text" placeholder="mp3链接" value={musicUrl} onChange={e => setMusicUrl(e.target.value)}
-                  className="flex-1 px-2 py-1 bg-bg-primary border border-bg-card rounded text-xs text-text-primary outline-none" />
-                <label className="px-2 py-1 bg-bg-primary border border-bg-card rounded text-xs text-text-secondary cursor-pointer hover:border-accent">
-                  上传
-                  <input type="file" accept="audio/*" className="hidden"
-                    onChange={async e => {
-                      const f = e.target.files?.[0]; if (!f) return
-                      const fd = new FormData(); fd.append('file', f)
-                      try { const r = await api('/upload', { method: 'POST', body: fd }) as { url: string }; setMusicUrl(r.url); if (!musicTitle) setMusicTitle(f.name) }
-                      catch {}
-                      e.target.value = ''
-                    }} />
-                </label>
+                <input type="text" placeholder="mp3外链地址" value={musicUrl} onChange={e => setMusicUrl(e.target.value)}
+                  className="flex-[2] px-2 py-1 bg-bg-primary border border-bg-card rounded text-xs text-text-primary outline-none" />
               </div>
             )}
           </div>
