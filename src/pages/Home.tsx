@@ -20,6 +20,12 @@ interface Stats {
   wall: number;
 }
 
+interface Tag {
+  id: number;
+  name: string;
+  count: number;
+}
+
 function getCover(id: number): { bg: string; pattern: string } {
   const palettes = [
     ['#818cf8', '#c084fc'], ['#06b6d4', '#3b82f6'], ['#f59e0b', '#ef4444'],
@@ -90,6 +96,7 @@ function PatternSVG({ pattern }: { pattern: string }) {
 
 export default function Home() {
   const [articles, setArticles] = useState<Article[]>([]);
+  const [tags, setTags] = useState<Tag[]>([]);
   const [stats, setStats] = useState<Stats>({ articles: 0, comments: 0, guestbook: 0, wall: 0 });
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -100,10 +107,12 @@ export default function Home() {
     Promise.all([
       api.get("/articles?limit=6"),
       api.get("/stats"),
+      api.get("/tags"),
     ])
-      .then(([articlesData, statsData]) => {
+      .then(([articlesData, statsData, tagsData]) => {
         setArticles((articlesData as { articles: Article[] }).articles);
         setStats(statsData as Stats);
+        setTags(tagsData as Tag[]);
       })
       .catch((err) => {
         setError(err instanceof Error ? err.message : "加载失败");
@@ -137,6 +146,22 @@ export default function Home() {
           </div>
         ))}
       </section>
+
+      {tags.length > 0 && (
+        <section className="mb-10">
+          <div className="flex items-center gap-2 overflow-x-auto pb-2" style={{ scrollbarWidth: 'none' }}>
+            {tags.map((tag) => (
+              <Link
+                key={tag.id}
+                to={`/tags/${encodeURIComponent(tag.name)}`}
+                className="shrink-0 px-4 py-2 rounded-full bg-bg-card border border-bg-card hover:border-accent/50 hover:text-accent text-text-secondary text-sm transition-colors"
+              >
+                #{tag.name} <span className="text-text-secondary/50 text-xs">({tag.count})</span>
+              </Link>
+            ))}
+          </div>
+        </section>
+      )}
 
       <section>
         <div className="flex items-center justify-between mb-6">

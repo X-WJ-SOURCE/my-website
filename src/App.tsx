@@ -6,6 +6,7 @@ import ArticleDetail from './pages/ArticleDetail';
 import Timeline from './pages/Timeline';
 import Guestbook from './pages/Guestbook';
 import GraffitiWall from './pages/GraffitiWall';
+import TagPage from './pages/TagPage';
 import MessageSend from './pages/MessageSend';
 import MessageThread from './pages/MessageThread';
 import Login from './pages/Login';
@@ -26,6 +27,7 @@ export default function App() {
         <Route path="/timeline" element={<Timeline />} />
         <Route path="/guestbook" element={<Guestbook />} />
         <Route path="/wall" element={<GraffitiWall />} />
+        <Route path="/tags/:tagName" element={<TagPage />} />
         <Route path="/messages" element={<MessageSend />} />
         <Route path="/messages/:threadId" element={<MessageThread />} />
         <Route path="/login" element={<Login />} />

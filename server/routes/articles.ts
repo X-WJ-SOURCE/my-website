@@ -101,14 +101,14 @@ articlesRouter.get('/:id', async (c) => {
 })
 
 articlesRouter.post('/', authMiddleware, async (c) => {
-  const { title, content, visibility, tags, cover_url, decor_images, music_url, music_title } = await c.req.json()
+  const { title, content, visibility, tags, cover_url, decor_images } = await c.req.json()
 
   if (!title || !content) {
     return c.json({ error: 'Title and content are required' }, 400)
   }
   const result = await db().execute({
-    sql: 'INSERT INTO articles (title, content, visibility, cover_url, decor_images, music_url, music_title) VALUES (?, ?, ?, ?, ?, ?, ?)',
-    args: [title, content, visibility || 'public', cover_url || null, decor_images ? JSON.stringify(decor_images) : null, music_url || null, music_title || null]
+    sql: 'INSERT INTO articles (title, content, visibility, cover_url, decor_images) VALUES (?, ?, ?, ?, ?)',
+    args: [title, content, visibility || 'public', cover_url || null, decor_images ? JSON.stringify(decor_images) : null]
   })
 
   const articleId = Number(result.lastInsertRowid)
@@ -146,8 +146,8 @@ articlesRouter.put('/:id', authMiddleware, async (c) => {
   }
 
   await db().execute({
-    sql: "UPDATE articles SET title = ?, content = ?, visibility = ?, cover_url = ?, decor_images = ?, music_url = ?, music_title = ?, updated_at = datetime('now') WHERE id = ?",
-    args: [title, content, visibility, cover_url || null, decor_images ? JSON.stringify(decor_images) : null, music_url || null, music_title || null, id]
+    sql: "UPDATE articles SET title = ?, content = ?, visibility = ?, cover_url = ?, decor_images = ?, updated_at = datetime('now') WHERE id = ?",
+    args: [title, content, visibility, cover_url || null, decor_images ? JSON.stringify(decor_images) : null, id]
   })
 
   if (tags && Array.isArray(tags)) {
