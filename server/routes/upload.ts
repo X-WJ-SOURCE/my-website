@@ -4,8 +4,8 @@ import { db } from '../db.js'
 
 const uploadRouter = new Hono()
 
-const ALLOWED_TYPES = ['image/jpeg', 'image/png', 'image/gif', 'image/webp', 'audio/mpeg', 'audio/mp3', 'audio/wav', 'audio/ogg']
-const MAX_SIZE = 50 * 1024 * 1024
+const ALLOWED_TYPES = ['image/jpeg', 'image/png', 'image/gif', 'image/webp']
+const MAX_SIZE = 20 * 1024 * 1024
 
 async function handleUpload(c: any) {
   const body = await c.req.parseBody()
