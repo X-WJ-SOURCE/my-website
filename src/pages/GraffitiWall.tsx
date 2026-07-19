@@ -1,4 +1,5 @@
 import { useState, useEffect, useCallback, useRef } from "react";
+import MusicPlayer from "../components/MusicPlayer";
 import { api, formatTime, getVisitorId } from "../lib/api";
 
 interface WallPost {
@@ -43,6 +44,9 @@ export default function GraffitiWall() {
   const [content, setContent] = useState("");
   const [images, setImages] = useState<string[]>([]);
   const [paperStyle, setPaperStyle] = useState('plain');
+  const [musicUrl, setMusicUrl] = useState('');
+  const [musicTitle, setMusicTitle] = useState('');
+  const [showMusic, setShowMusic] = useState(false);
   const [uploading, setUploading] = useState(false);
   const [submitting, setSubmitting] = useState(false);
   const [submitError, setSubmitError] = useState<string | null>(null);
@@ -95,12 +99,17 @@ export default function GraffitiWall() {
         image_url: null,
         images: images.length > 0 ? images : undefined,
         paper_style: paperStyle,
+        music_url: musicUrl || null,
+        music_title: musicTitle || null,
         visitor_id: visitorId,
       });
       setNickname("");
       setContent("");
       setImages([]);
       setPaperStyle('plain');
+      setMusicUrl('');
+      setMusicTitle('');
+      setShowMusic(false);
       setPage(1);
       fetchPosts();
     } catch (err) {
@@ -263,6 +272,31 @@ export default function GraffitiWall() {
                 {uploading ? '...' : '+ 图片'}
                 <input type="file" accept="image/*" onChange={handleImageUpload} className="hidden" disabled={uploading} />
               </label>
+            )}
+          </div>
+          <div className="mb-3">
+            <button type="button" onClick={() => setShowMusic(!showMusic)}
+              className="text-xs text-text-secondary hover:text-accent cursor-pointer">
+              🎵 音乐 {showMusic ? '▲' : '▼'}
+            </button>
+            {showMusic && (
+              <div className="flex gap-2 mt-2">
+                <input type="text" placeholder="歌曲名" value={musicTitle} onChange={e => setMusicTitle(e.target.value)}
+                  className="flex-1 px-2 py-1 bg-bg-primary border border-bg-card rounded text-xs text-text-primary outline-none" />
+                <input type="text" placeholder="mp3链接" value={musicUrl} onChange={e => setMusicUrl(e.target.value)}
+                  className="flex-1 px-2 py-1 bg-bg-primary border border-bg-card rounded text-xs text-text-primary outline-none" />
+                <label className="px-2 py-1 bg-bg-primary border border-bg-card rounded text-xs text-text-secondary cursor-pointer hover:border-accent">
+                  上传
+                  <input type="file" accept="audio/*" className="hidden"
+                    onChange={async e => {
+                      const f = e.target.files?.[0]; if (!f) return
+                      const fd = new FormData(); fd.append('file', f)
+                      try { const r = await api('/upload', { method: 'POST', body: fd }) as { url: string }; setMusicUrl(r.url); if (!musicTitle) setMusicTitle(f.name) }
+                      catch {}
+                      e.target.value = ''
+                    }} />
+                </label>
+              </div>
             )}
           </div>
           <div className="mb-3">
@@ -437,6 +471,11 @@ export default function GraffitiWall() {
                   )}
                   {post.image_url && !((post as any).images && JSON.parse((post as any).images || '[]').length > 0) && (
                     <img src={post.image_url} alt="" className="w-full rounded mb-2" />
+                  )}
+                  {(post as any).music_url && (
+                    <div className="mt-2">
+                      <MusicPlayer url={(post as any).music_url} title={(post as any).music_title} />
+                    </div>
                   )}
                   <p
                     className="text-xs mt-2"
