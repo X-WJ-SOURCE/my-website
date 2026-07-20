@@ -262,21 +262,25 @@ export default function AdminArticles() {
   }
 
   async function handleInlineImage(e: React.ChangeEvent<HTMLInputElement>) {
-    const file = e.target.files?.[0]
-    if (!file) return
+    const files = e.target.files
+    if (!files || !files.length) return
     setUploading(true)
     try {
-      const fd = new FormData()
-      fd.append('file', file)
-      const result = await api('/upload', { method: 'POST', body: fd }) as { url: string }
-      const md = `![${file.name}](${result.url})`
-      setContent(prev => prev ? `${prev}\n${md}\n` : md)
+      let md = ''
+      for (const file of Array.from(files)) {
+        const fd = new FormData()
+        fd.append('file', file)
+        const result = await api('/upload', { method: 'POST', body: fd }) as { url: string }
+        md += `![${file.name}](${result.url})\n`
+      }
+      setContent(prev => prev ? `${prev}\n${md}` : md)
     } catch (err) {
       setError(err instanceof Error ? err.message : '图片上传失败')
     } finally {
       setUploading(false)
       e.target.value = ''
     }
+  }
   }
 
   async function handleDelete(id: number) {
@@ -411,7 +415,7 @@ export default function AdminArticles() {
             <div className="flex items-center gap-2">
               <label className="px-3 py-1.5 bg-bg-secondary border border-bg-card rounded text-xs text-text-secondary cursor-pointer hover:border-accent transition-colors">
                 {uploading ? '上传中...' : '插入图片'}
-                <input type="file" accept="image/*" onChange={handleInlineImage} className="hidden" disabled={uploading} />
+                <input type="file" accept="image/*" multiple onChange={handleInlineImage} className="hidden" disabled={uploading} />
               </label>
               <span className="text-xs text-text-secondary">直接插入到文章中</span>
             </div>
