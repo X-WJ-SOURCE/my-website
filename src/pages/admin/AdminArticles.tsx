@@ -245,14 +245,16 @@ export default function AdminArticles() {
   }
 
   async function handleDecorUpload(e: React.ChangeEvent<HTMLInputElement>) {
-    const file = e.target.files?.[0]
-    if (!file) return
+    const files = e.target.files
+    if (!files || !files.length) return
     setUploading(true)
     try {
-      const fd = new FormData()
-      fd.append('file', file)
-      const result = await api('/upload', { method: 'POST', body: fd }) as { url: string }
-      setDecorImages(prev => [...prev, { url: result.url, x: 50 + (prev.length * 10) % 40, y: 50 + (prev.length * 15) % 30, w: 160 }])
+      for (const file of Array.from(files)) {
+        const fd = new FormData()
+        fd.append('file', file)
+        const result = await api('/upload', { method: 'POST', body: fd }) as { url: string }
+        setDecorImages(prev => [...prev, { url: result.url, x: 50 + (prev.length * 10) % 40, y: 50 + (prev.length * 15) % 30, w: 160 }])
+      }
     } catch (err) {
       setError(err instanceof Error ? err.message : '图片上传失败')
     } finally {
@@ -481,7 +483,7 @@ export default function AdminArticles() {
                 ))}
                 <label className="px-4 py-2 h-16 w-24 rounded bg-bg-secondary border border-dashed border-bg-card text-text-secondary text-xs cursor-pointer hover:border-accent flex items-center justify-center">
                   {uploading ? '上传中' : '+ 添加'}
-                  <input type="file" accept="image/*" onChange={handleDecorUpload} className="hidden" disabled={uploading} />
+                  <input type="file" accept="image/*" multiple onChange={handleDecorUpload} className="hidden" disabled={uploading} />
                 </label>
               </div>
             </div>
