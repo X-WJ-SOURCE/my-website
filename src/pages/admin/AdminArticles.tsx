@@ -281,7 +281,6 @@ export default function AdminArticles() {
       e.target.value = ''
     }
   }
-  }
 
   async function handleDelete(id: number) {
     if (!window.confirm('确定删除这篇文章？')) return;
