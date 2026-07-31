@@ -48,6 +48,14 @@ export async function api(path: string, options: ApiOptions = {}): Promise<unkno
           : undefined,
   });
 
+  if (response.status === 401) {
+    clearToken();
+    if (window.location.pathname !== '/login') {
+      window.location.href = '/login';
+    }
+    throw new Error('登录已过期，请重新登录');
+  }
+
   if (!response.ok) {
     const error = await response.json().catch(() => ({ message: response.statusText }));
     throw new Error(error.message || `请求失败 (状态码: ${response.status})`);
